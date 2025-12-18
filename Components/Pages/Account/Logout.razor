@@ -1,0 +1,31 @@
+﻿@page "/logout"
+@using MudBlazor
+@inject NavigationManager Navigation
+
+<MudPaper Class="pa-6 mx-auto mt-12" MaxWidth="400px" Elevation="6">
+    <MudStack Spacing="2" AlignItems="AlignItems.Center">
+        <MudIcon Icon="@Icons.Material.Filled.ExitToApp" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h5" Align="Align.Center">
+            Logout effettuato
+        </MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center">
+            Verrai reindirizzato alla pagina di login tra pochi secondi.
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GoToLogin">
+            Torna al Login
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(2000);
+        Navigation.NavigateTo("/account/login", forceLoad: true);
+    }
+
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/account/login", forceLoad: true);
+    }
+}

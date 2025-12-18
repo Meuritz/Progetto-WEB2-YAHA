@@ -1,0 +1,71 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model.WievModels
+@using System.Security.Claims
+@inject DbContextSQLite DbContextSQLite
+@inject NavigationManager NavigationManager
+
+<MudPaper Class="pa-6 mx-auto" MaxWidth="400px" Elevation="4">
+    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Login</MudText>
+
+    <MudForm @ref="form" Model="Model" OnValidSubmit="AuthenticateAsync">
+        <MudTextField @bind-Value="Model.Username"
+                      Label="Email"
+                      For="@(() => Model.Username)"
+                      Required="true"
+                      RequiredError="L'email è obbligatoria"
+                      Class="mb-3"
+                      InputType="InputType.Email" />
+
+        <MudTextField @bind-Value="Model.Password"
+                      Label="Password"
+                      For="@(() => Model.Password)"
+                      Required="true"
+                      RequiredError="La password è obbligatoria"
+                      Class="mb-3"
+                      InputType="InputType.Password" />
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@errorMessage</MudAlert>
+        }
+
+        <MudButton Type="Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true">
+            Accedi
+        </MudButton>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    [SupplyParameterFromForm]
+    public LoginViewModel Model { get; set; } = new();
+
+    private MudForm? form;
+    private string? errorMessage;
+
+    private async Task AuthenticateAsync()
+    {
+        var user = DbContextSQLite.User.Where(u => u.Name == Model.Username).FirstOrDefault();
+
+        if (user == null || user.HashedPassword != Model.Password)
+        {
+            errorMessage = "Credenziali non valide. Riprova.";
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+        await HttpContext.SignInAsync(principal);
+    }
+}
