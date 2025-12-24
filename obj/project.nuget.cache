@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "xt6OH/mbeYM=",
+  "dgSpecHash": "Z2Ribr63M6U=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Meuritz\\source\\repos\\Progetto Web 2 IoT Auth\\Progetto Web 2 IoT Auth.csproj",
+  "projectFilePath": "C:\\Users\\Meuritz\\source\\repos\\Progetto-WEB2-YAHA\\Progetto Web 2 IoT Auth.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Meuritz\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.1\\microsoft.aspnetcore.app.internal.assets.10.0.1.nupkg.sha512",
