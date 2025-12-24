@@ -1,4 +1,5 @@
 ﻿@page "/logout"
+@using Microsoft.AspNetCore.Authentication
 @using MudBlazor
 @inject NavigationManager Navigation
 
@@ -18,14 +19,21 @@
 </MudPaper>
 
 @code {
+    [CascadingParameter]
+    public HttpContext HttpContext { get; set;}
+
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(2000);
-        Navigation.NavigateTo("/account/login", forceLoad: true);
+        await base.OnInitializedAsync();
+        if (HttpContext.User.Identity.IsAuthenticated)
+        {
+            await HttpContext.SignOutAsync();
+            Navigation.NavigateTo("/logout", forceLoad: true);
+        }
     }
 
     private void GoToLogin()
     {
-        Navigation.NavigateTo("/account/login", forceLoad: true);
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

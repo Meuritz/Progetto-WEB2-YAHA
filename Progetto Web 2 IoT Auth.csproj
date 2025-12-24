@@ -20,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.1" />
     <PackageReference Include="MudBlazor" Version="8.15.0" />
   </ItemGroup>
 
