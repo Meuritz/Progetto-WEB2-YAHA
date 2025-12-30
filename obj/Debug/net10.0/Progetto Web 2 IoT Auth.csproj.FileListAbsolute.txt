@@ -517,10 +517,13 @@ C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\staticwebasse
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\staticwebassets.development.json
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\staticwebassets.build.endpoints.json
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\swae.build.ex.cache
-C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\Progetto.2C258D05.Up2Date
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\Progetto_Web_2_IoT_Auth.dll
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\refint\Progetto_Web_2_IoT_Auth.dll
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\Progetto_Web_2_IoT_Auth.pdb
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\Progetto Web 2 IoT Auth.genruntimeconfig.cache
 C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\ref\Progetto_Web_2_IoT_Auth.dll
+C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\bin\Debug\net10.0\BCrypt.Net-Next.dll
+C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\bin\Debug\net10.0\DotNetEnv.dll
+C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\bin\Debug\net10.0\Sprache.dll
+C:\Users\Meuritz\source\repos\Progetto-WEB2-YAHA\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

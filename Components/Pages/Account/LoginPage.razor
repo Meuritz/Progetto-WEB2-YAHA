@@ -5,68 +5,122 @@
 @using Progetto_Web_2_IoT_Auth.Data.Model.WievModels
 @using System.Security.Claims
 @inject DbContextSQLite DbContextSQLite
-@inject NavigationManager NavigationManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
 
-<MudPaper Class="pa-6 mx-auto mt-20" MaxWidth="30em" Elevation="4">
-    <MudText Typo="Typo.h5" Align="Align.Center" Class="mb-4">Login</MudText>
+<PageTitle>Login</PageTitle>
 
-    <MudForm @ref="form" Model="Model" OnValidSubmit="AuthenticateAsync">
-        <MudTextField @bind-Value="Model.Username"
-                      Label="Username"
-                      For="@(() => Model.Username)"
-                      Required="true"
-                      RequiredError="L'username è obbligatorio"
-                      Class="mb-3"
-                      InputType="InputType.Text" />
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Elevation="4" Class="pa-6">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Accesso</MudText>
 
-        <MudTextField @bind-Value="Model.Password"
-                      Label="Password"
-                      For="@(() => Model.Password)"
-                      Required="true"
-                      RequiredError="La password è obbligatoria"
-                      Class="mb-3"
-                      InputType="InputType.Password" />
+        <EditForm Model="@loginModel" OnValidSubmit="SubmitToServer" FormName="Login" @rendermode="InteractiveServer">
+            <DataAnnotationsValidator />
 
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <MudAlert Severity="Severity.Error" Class="mb-3">@errorMessage</MudAlert>
-        }
+            <MudTextField Label="Nome" @bind-Value="loginModel.Username" Variant="Variant.Outlined" Class="mb-4" />
+            <MudTextField Label="Password"
+                          @bind-Value="loginModel.Password"
+                          InputType="@(_showPassword? InputType.Text: InputType.Password)"
+                          Variant="Variant.Outlined"
+                          Class="mb-4"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showPassword? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="@TogglePasswordVisibility" />
 
-        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true">
-            Accedi
-        </MudButton>
-    </MudForm>
-</MudPaper>
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Login"
+                       Disabled="@isLoading"
+                       FullWidth="true">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Accedi
+            </MudButton>
+        </EditForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.body2" Align="Align.Center">
+            Non hai un account?
+            <MudLink Href="/register">Registrati qui</MudLink>
+        </MudText>
+
+        <form id="serverLoginForm" method="post" action="/login-action" style="display:none;">
+            <input type="hidden" name="name" id="hiddenName" />
+            <input type="hidden" name="password" id="hiddenPassword" />
+            <input type="hidden" name="__RequestVerificationToken" id="antiforgeryToken" value="@_antiforgeryToken" />
+        </form>
+    </MudPaper>
+</MudContainer>
+
+<script>
+    window.submitLoginForm = (data) => {
+        document.getElementById('hiddenName').value = data.name;
+        document.getElementById('hiddenPassword').value = data.password;
+        document.getElementById('antiforgeryToken').value = data.antiforgeryToken;
+        document.getElementById('serverLoginForm').submit();
+    };
+</script>
 
 @code {
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
+    private LoginViewModel loginModel = new();
+    private bool isLoading;
+    private bool _showPassword;
+    private string? _antiforgeryToken;
 
-    [SupplyParameterFromForm]
-    public LoginViewModel Model { get; set; } = new();
-
-    private MudForm? form;
-    private string? errorMessage;
-
-    private async Task AuthenticateAsync()
+    protected override void OnInitialized()
     {
-        var user = DbContextSQLite.User.Where(u => u.Name == Model.Username).FirstOrDefault();
+        var tokens = Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext!);
+        _antiforgeryToken = tokens.RequestToken;
 
-        if (user == null || user.HashedPassword != Model.Password)
+        var uri = new Uri(Navigation.Uri);
+        var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        if(q.TryGetValue("login", out var v1) && v1 == "success")
         {
-            errorMessage = "Credenziali non valide. Riprova.";
+            Snackbar.Add("Login effettuato con successo.", Severity.Success);
+            Navigation.NavigateTo("/", forceLoad: true);
             return;
         }
 
-        var claims = new List<Claim>
+        // Only clear ReturnUrl if not authenticated and not a successful login
+        if (q.ContainsKey("ReturnUrl") && !(q.TryGetValue("login", out var v2) && v2 == "success"))
         {
-            new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Role, user.Role)
-        };
+            var cleanPath = uri.AbsolutePath;
+            Navigation.NavigateTo(cleanPath, forceLoad: true);
+            return;
+        }
+        if (q.TryGetValue("error", out var e))
+            Snackbar.Add(Uri.UnescapeDataString(e!), Severity.Error);
+    }
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-        await HttpContext.SignInAsync(principal);
+    private void TogglePasswordVisibility() => _showPassword = !_showPassword;
+
+    private async Task SubmitToServer()
+    {
+        isLoading = true;
+        try
+        {
+            await JS.InvokeVoidAsync("submitLoginForm", new
+            {
+                name = loginModel.Username,
+                password = loginModel.Password,
+                antiforgeryToken = _antiforgeryToken
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignora o logga l'eccezione se la navigazione è attesa
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

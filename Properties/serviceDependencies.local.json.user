@@ -3,10 +3,6 @@
     "secrets1": {
       "restored": true,
       "restoreTime": "2025-12-17T13:12:34.2398553Z"
-    },
-    "sqlite1": {
-      "restored": true,
-      "restoreTime": "2025-12-17T13:12:34.6204719Z"
     }
   },
   "parameters": {}

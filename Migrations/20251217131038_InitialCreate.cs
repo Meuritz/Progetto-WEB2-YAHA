@@ -24,6 +24,13 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 {
                     table.PrimaryKey("PK_User", x => x.id);
                 });
+
+            // Inserimento utente di default
+            migrationBuilder.InsertData(
+                table: "User",
+                columns: new[] { "id", "name", "password", "role" },
+                values: new object[] { 1, "admin", "admin", "Administrator" }
+            );
         }
 
         /// <inheritdoc />

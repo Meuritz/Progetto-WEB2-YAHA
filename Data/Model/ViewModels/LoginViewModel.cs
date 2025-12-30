@@ -9,6 +9,6 @@ namespace Progetto_Web_2_IoT_Auth.Data.Model.WievModels
         public string? Username { get; set; }
 
         [Required(AllowEmptyStrings = false, ErrorMessage = "Insert an Username!")] 
-        public string Password { get; set; }
+        public string? Password { get; set; }
     }
 }
