@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "dX0R3c5xdU4=",
+  "dgSpecHash": "tbtv7mw3t90=",
   "success": true,
   "projectFilePath": "C:\\Users\\Meuritz\\source\\repos\\Progetto-WEB2-YAHA\\Progetto Web 2 IoT Auth.csproj",
   "expectedPackageFiles": [
@@ -27,6 +27,7 @@
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.entityframeworkcore.sqlite\\10.0.1\\microsoft.entityframeworkcore.sqlite.10.0.1.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.entityframeworkcore.sqlite.core\\10.0.1\\microsoft.entityframeworkcore.sqlite.core.10.0.1.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.extensions.dependencymodel\\10.0.1\\microsoft.extensions.dependencymodel.10.0.1.nupkg.sha512",
+    "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.extensions.http\\10.0.0\\microsoft.extensions.http.10.0.0.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.net.stringtools\\17.14.28\\microsoft.net.stringtools.17.14.28.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\mono.texttemplating\\3.0.0\\mono.texttemplating.3.0.0.nupkg.sha512",
@@ -54,5 +55,18 @@
     "C:\\Users\\Meuritz\\.nuget\\packages\\system.security.permissions\\9.0.0\\system.security.permissions.9.0.0.nupkg.sha512",
     "C:\\Users\\Meuritz\\.nuget\\packages\\system.windows.extensions\\9.0.0\\system.windows.extensions.9.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1510",
+      "level": "Warning",
+      "message": "Microsoft.Extensions.Http PackageReference non verrà rimosso. È consigliabile rimuovere questo pacchetto dalle dipendenze, poiché è probabile che non sia necessario.",
+      "projectPath": "C:\\Users\\Meuritz\\source\\repos\\Progetto-WEB2-YAHA\\Progetto Web 2 IoT Auth.csproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\Meuritz\\source\\repos\\Progetto-WEB2-YAHA\\Progetto Web 2 IoT Auth.csproj",
+      "libraryId": "Microsoft.Extensions.Http",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

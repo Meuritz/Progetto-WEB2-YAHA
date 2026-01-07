@@ -30,7 +30,7 @@ public class LoginService : ILoginService
                 return LoginResult.Failure("name and password are required");
 
             var user = await _context.User.FirstOrDefaultAsync(u => u.Name == name);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.HashedPassword))
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             {
                 _logger.LogWarning("Invalid login for {Name}", " name not valid");
                 return LoginResult.Failure("Invalid name or password");

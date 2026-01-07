@@ -18,7 +18,7 @@ namespace Progetto_Web_2_IoT_Auth.Data.Model
         [Required]
         [StringLength(50)]
         [Column("password")]
-        public string HashedPassword  { get; set; }
+        public string Password  { get; set; }
         
         [Required]
         [StringLength(20)]

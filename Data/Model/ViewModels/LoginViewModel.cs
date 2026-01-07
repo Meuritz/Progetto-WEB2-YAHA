@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Progetto_Web_2_IoT_Auth.Data.Model.WievModels
+namespace Progetto_Web_2_IoT_Auth.Data.Model.ViewModels
 {
     public class LoginViewModel
     {
