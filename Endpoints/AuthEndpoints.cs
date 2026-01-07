@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using YAHA.Services;
+using System.Security.Claims;
+using Progetto_Web_2_IoT_Auth.Services;
 
-namespace YAHA.Endpoints;
+namespace Progetto_Web_2_IoT_Auth.Endpoints;
 
 public static class AuthEndpoints
 {
@@ -42,6 +42,10 @@ public static class AuthEndpoints
             var principal = new ClaimsPrincipal(identity);
 
             logger.LogInformation("Login for {Name} role={Role}", result.Name, result.Role);
+            await context.SignInAsync("Cookies", principal, new AuthenticationProperties
+            {
+                
+            });
             context.Response.Redirect("/?login=success");
         }
         catch (Exception ex)

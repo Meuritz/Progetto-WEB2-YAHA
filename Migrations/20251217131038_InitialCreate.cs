@@ -29,7 +29,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
             migrationBuilder.InsertData(
                 table: "User",
                 columns: new[] { "id", "name", "password", "role" },
-                values: new object[] { 1, "admin", "admin", "Administrator" }
+                values: new object[] { 1, "admin", "$2a$08$pT2DIgkMi/PC/7lmlVAyquaiZM1cNo1xJEjSp0yOiCtWh4NYKA8xG", "Administrator" }
             );
         }
 

@@ -1,9 +1,6 @@
 ﻿@page "/login"
-@using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Authentication.Cookies
-@using Progetto_Web_2_IoT_Auth.Data
-@using Progetto_Web_2_IoT_Auth.Data.Model.WievModels
-@using System.Security.Claims
+
+@layout UnauthorizedLayout
 @inject DbContextSQLite DbContextSQLite
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -15,7 +12,7 @@
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Elevation="4" Class="pa-6">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Accesso</MudText>
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Login</MudText>
 
         <EditForm Model="@loginModel" OnValidSubmit="SubmitToServer" FormName="Login" @rendermode="InteractiveServer">
             <DataAnnotationsValidator />
@@ -43,13 +40,6 @@
             </MudButton>
         </EditForm>
 
-        <MudDivider Class="my-4" />
-
-        <MudText Typo="Typo.body2" Align="Align.Center">
-            Non hai un account?
-            <MudLink Href="/register">Registrati qui</MudLink>
-        </MudText>
-
         <form id="serverLoginForm" method="post" action="/login-action" style="display:none;">
             <input type="hidden" name="name" id="hiddenName" />
             <input type="hidden" name="password" id="hiddenPassword" />
@@ -76,9 +66,6 @@
 
     protected override void OnInitialized()
     {
-        var tokens = Antiforgery.GetAndStoreTokens(HttpContextAccessor.HttpContext!);
-        _antiforgeryToken = tokens.RequestToken;
-
         var uri = new Uri(Navigation.Uri);
         var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 
@@ -116,7 +103,6 @@
         }
         catch (TaskCanceledException)
         {
-            // Ignora o logga l'eccezione se la navigazione è attesa
         }
         finally
         {

@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using Progetto_Web_2_IoT_Auth.Components;
 using Progetto_Web_2_IoT_Auth.Data;
-using MudBlazor.Services;
-using YAHA.Services;
+using Progetto_Web_2_IoT_Auth.Endpoints;
+using Progetto_Web_2_IoT_Auth.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,14 +16,16 @@ builder.Services.AddMudServices();
 
 builder.Services.AddDbContext<DbContextSQLite>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options => {
+builder.Services.AddAuthentication("Cookies")
+    .AddCookie("Cookies", options =>
+    {
         options.Cookie.Name = "auth_token";
         options.LoginPath = "/login";
         options.LogoutPath = "/logout";
         options.AccessDeniedPath = "/access-denied";
-        options.Cookie.MaxAge = TimeSpan.FromHours(1);
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
     });
+
 builder.Services.AddScoped<ILoginService, LoginService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthorization();
@@ -45,6 +48,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseAntiforgery();
+
+app.MapAuthEndpoints();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

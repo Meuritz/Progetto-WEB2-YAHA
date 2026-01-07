@@ -21,11 +21,11 @@
     protected override async Task OnInitializedAsync()
     {
         await Task.Delay(2000);
-        Navigation.NavigateTo("/account/login", forceLoad: true);
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 
     private void GoToLogin()
     {
-        Navigation.NavigateTo("/account/login", forceLoad: true);
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

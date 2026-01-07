@@ -2,7 +2,7 @@ using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Progetto_Web_2_IoT_Auth.Data;
 
-namespace YAHA.Services;
+namespace Progetto_Web_2_IoT_Auth.Services;
 
 public interface ILoginService
 {
