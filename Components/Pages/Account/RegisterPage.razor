@@ -15,7 +15,7 @@
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Elevation="4" Class="pa-6">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Registrati</MudText>
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">New User</MudText>
 
         <EditForm EditContext="_editContext" OnValidSubmit="RegisterAsync">
             <DataAnnotationsValidator />
@@ -52,12 +52,24 @@
                           AdornmentIcon="@(_showConfirm? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                           OnAdornmentClick="@(() => _showConfirm = !_showConfirm)" />
 
+            <MudRadioGroup 
+                T="string" 
+                Required="true" 
+                @bind-Value="_model.Role">
+
+                    <MudRadio Value="@("User")">User</MudRadio>
+                    <MudRadio Value="@("Admin")">Admin</MudRadio>
+            
+             </MudRadioGroup>
+    
+
             <MudButton ButtonType="ButtonType.Submit"
                        Variant="Variant.Filled"
                        Color="Color.Primary"
                        Disabled="_submitting"
                        FullWidth="true"
                        StartIcon="@Icons.Material.Filled.PersonAdd">
+
                 @if (_submitting)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -65,32 +77,20 @@
                 Crea Account
             </MudButton>
         </EditForm>
-
-        @if (!string.IsNullOrEmpty(_resultMessage))
-        {
-            <MudAlert Severity="@_resultSeverity" Elevation="0" Class="mt-4">
-                @_resultMessage
-            </MudAlert>
-        }
-
-        <MudDivider Class="my-4" />
-
-        <MudText Typo="Typo.body2" Align="Align.Center">
-            Hai già un account?
-            <MudLink Href="/login">Accedi</MudLink>
-        </MudText>
     </MudPaper>
 </MudContainer>
 
 <form id="serverLoginForm" method="post" action="/login-action" style="display:none;">
     <input type="hidden" name="name" id="hiddenName" />
     <input type="hidden" name="password" id="hiddenPassword" />
+    <input type="hidden" name="role" id="hiddenRole" />
 </form>
 
 <script>
     window.submitLoginForm = (data) => {
         document.getElementById('hiddenName').value = data.name;
         document.getElementById('hiddenPassword').value = data.password;
+        document.getElementById('hiddenRole').value = data.role;
         document.getElementById('serverLoginForm').submit();    
     };
 </script>
@@ -151,7 +151,7 @@
             {
                 Name = _model.Name.Trim(),
                 Password = BCrypt.Net.BCrypt.HashPassword(_model.Password),
-                Role = "User",
+                Role = _model.Role.Trim(),
             };
 
             Db.User.Add(user);
@@ -161,12 +161,13 @@
             _resultMessage = "Registrazione completata con successo!";
             _resultSeverity = Severity.Success;
             ResetForm();
+            Nav.NavigateTo("/manage-users", forceLoad: true);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Unexpected registration error.");
             _resultMessage = "Registrazione fallita.";
             _resultSeverity = Severity.Error;
+            Snackbar.Add("Error" + ex, Severity.Error);
         }
         finally
         {

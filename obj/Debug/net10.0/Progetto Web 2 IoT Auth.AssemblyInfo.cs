@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Progetto_Web_2_IoT_Auth")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ed60c9b92061c3ac991474a3f11dc479de35de73")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+054f8a31c2a6619b6309c7146a21f25ed1a28175")]
 [assembly: System.Reflection.AssemblyProductAttribute("Progetto_Web_2_IoT_Auth")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Progetto_Web_2_IoT_Auth")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
