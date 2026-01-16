@@ -16,34 +16,129 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Device", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("deviceGroupId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("type")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("userGroupId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("deviceGroupId");
+
+                    b.HasIndex("userGroupId");
+
+                    b.ToTable("Device");
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.DeviceGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DeviceGroup");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "dafault"
+                        });
+                });
+
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("id");
-
-                    b.Property<string>("HashedPassword")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("password");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("name");
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT")
-                        .HasColumnName("role");
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("userGroupId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("userGroupId");
+
                     b.ToTable("User");
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.UserGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserGroup");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "dafault"
+                        });
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Device", b =>
+                {
+                    b.HasOne("Progetto_Web_2_IoT_Auth.Data.Model.DeviceGroup", "deviceGroup")
+                        .WithMany()
+                        .HasForeignKey("deviceGroupId");
+
+                    b.HasOne("Progetto_Web_2_IoT_Auth.Data.Model.UserGroup", "userGroup")
+                        .WithMany()
+                        .HasForeignKey("userGroupId");
+
+                    b.Navigation("deviceGroup");
+
+                    b.Navigation("userGroup");
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.User", b =>
+                {
+                    b.HasOne("Progetto_Web_2_IoT_Auth.Data.Model.UserGroup", "userGroup")
+                        .WithMany()
+                        .HasForeignKey("userGroupId");
+
+                    b.Navigation("userGroup");
                 });
 #pragma warning restore 612, 618
         }

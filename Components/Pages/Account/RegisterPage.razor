@@ -61,6 +61,20 @@
                     <MudRadio Value="@("Admin")">Admin</MudRadio>
             
              </MudRadioGroup>
+            
+            <MudSelect T="int" Label="User Group" @bind-Value="_selectedUserGroupId" Required="true" Class="mb-3">
+                @if (_userGroups.Count == 0)
+                {
+                    <MudSelectItem Value="0">Nessun gruppo disponibile</MudSelectItem>
+                }
+                else
+                {
+                    @foreach (var g in _userGroups)
+                    {
+                        <MudSelectItem Value="@g.Id">@g.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
     
 
             <MudButton ButtonType="ButtonType.Submit"
@@ -104,11 +118,23 @@
     private bool _confirmTouched;
     private string? _resultMessage;
     private Severity _resultSeverity;
+    private List<UserGroup> _userGroups = new();
+    private int _selectedUserGroupId;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _editContext = new EditContext(_model);
         _editContext.OnFieldChanged += OnFieldChanged;
+        _userGroups = await Db.UserGroup.OrderBy(g => g.Name).ToListAsync();
+        if (_userGroups.Count == 0)
+        {
+            // Ensure default exists if DB is empty
+            var defaultGroup = new UserGroup { Name = "default" };
+            Db.UserGroup.Add(defaultGroup);
+            await Db.SaveChangesAsync();
+            _userGroups = await Db.UserGroup.OrderBy(g => g.Name).ToListAsync();
+        }
+        _selectedUserGroupId = _userGroups.FirstOrDefault()?.Id ?? 0;
     }
 
     private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
@@ -153,6 +179,21 @@
                 Password = BCrypt.Net.BCrypt.HashPassword(_model.Password),
                 Role = _model.Role.Trim(),
             };
+
+            // Assign selected user group (fallback to default if not found)
+            var selectedGroup = await Db.UserGroup.FirstOrDefaultAsync(g => g.Id == _selectedUserGroupId);
+            if (selectedGroup == null)
+            {
+                selectedGroup = await Db.UserGroup.FirstOrDefaultAsync(g => g.Name == "default")
+                    ?? new UserGroup { Name = "default" };
+                if (selectedGroup.Id == 0)
+                {
+                    Db.UserGroup.Add(selectedGroup);
+                    await Db.SaveChangesAsync();
+                }
+            }
+
+            user.userGroup = selectedGroup;
 
             Db.User.Add(user);
             await Db.SaveChangesAsync();

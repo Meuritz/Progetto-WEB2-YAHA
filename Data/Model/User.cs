@@ -1,28 +1,21 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
-namespace Progetto_Web_2_IoT_Auth.Data.Model
+﻿namespace Progetto_Web_2_IoT_Auth.Data.Model
 {
     public class User
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("id")]
+       
         public int Id { get; set; }
         
-        [Required]
-        [StringLength(50)]
-        [Column("name")]
+       
         public string Name { get; set; }
 
-        [Required]
-        [StringLength(50)]
-        [Column("password")]
+        
         public string Password  { get; set; }
         
-        [Required]
-        [StringLength(20)]
-        [Column("role")]
+        
         public string Role { get; set; }
+
+        
+        public UserGroup? userGroup { get; set; }
+
     }
 }
