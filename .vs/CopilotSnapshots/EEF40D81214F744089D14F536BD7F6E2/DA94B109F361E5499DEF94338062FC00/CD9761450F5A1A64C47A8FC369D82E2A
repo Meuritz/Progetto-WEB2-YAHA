@@ -1,0 +1,9 @@
+﻿@using MudBlazor
+
+<MudPaper Class="d-flex flex-row align-items-center p-2" Elevation="1">
+    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Class="mx-2">Home</MudNavLink>
+    <MudNavLink Href="/profile" Icon="@Icons.Material.Filled.Person" Class="mx-2">Profile</MudNavLink>
+    <MudNavLink Href="/settings" Icon="@Icons.Material.Filled.Settings" Class="mx-2">Settings</MudNavLink>
+    <MudNavLink Href="/logout" Icon="@Icons.Material.Filled.ExitToApp" Class="mx-2">Logout</MudNavLink>
+</MudPaper>
+

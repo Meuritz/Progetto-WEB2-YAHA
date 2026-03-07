@@ -1,0 +1,39 @@
+﻿@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">@Title</MudText>
+
+            <MudText Typo="Typo.body2">Utente: <b>@Username</b></MudText>
+
+            <MudSelect T="string" Label="Ruolo" @bind-Value="_role" Variant="Variant.Outlined">
+                <MudSelectItem Value="user">user</MudSelectItem>
+                <MudSelectItem Value="admin">admin</MudSelectItem>
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_role)">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Username { get; set; } = string.Empty;
+    [Parameter] public string CurrentRole { get; set; } = "user";
+
+    private string _role = "user";
+
+    private string Title => "Cambia ruolo";
+
+    protected override void OnInitialized()
+    {
+        _role = string.IsNullOrWhiteSpace(CurrentRole) ? "user" : CurrentRole.Trim().ToLowerInvariant();
+    }
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(_role));
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,43 +1,90 @@
 ﻿@page "/manage-users"
 @using Microsoft.EntityFrameworkCore
 @using Progetto_Web_2_IoT_Auth.Data.Model
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "admin")]
+@using Progetto_Web_2_IoT_Auth.Components.Pages.Account.Dialogs
 @inject DbContextSQLite Db
 @inject NavigationManager Nav
 @inject IDialogService Dialog
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 @using MudBlazor
 
 <MudPaper Class="pa-6 mt-6">
-    <MudStack Row="true" JustifyContent="space-between" Class="mb-4">
-        <MudText Typo="Typo.h5">Utenti Registrati</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="GoToRegister">
-            Aggiungi Utente
-        </MudButton>
+    <MudStack Spacing="2">
+        <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5">Utenti Registrati</MudText>
+            <MudStack Row="true" Spacing="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="GoToRegister">
+                    Aggiungi Utente
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <MudTextField @bind-Value="_search"
+                      Placeholder="Cerca per username o email..."
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" />
     </MudStack>
 
-    <MudTable Items="_users" Dense="true" Hover="true" Bordered="true" Striped="true">
+    <MudTable Items="FilteredUsers" Dense="true" Hover="true" Bordered="true" Striped="true">
         <HeaderContent>
-            <MudTh>Nome</MudTh>
+            <MudTh>Username</MudTh>
+            <MudTh>Email</MudTh>
             <MudTh>Ruolo</MudTh>
             <MudTh>Gestione</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Nome">@context.Name</MudTd>
+            <MudTd DataLabel="Username">@context.Username</MudTd>
+            <MudTd DataLabel="Email">@context.Mail</MudTd>
             <MudTd DataLabel="Ruolo">@context.Role</MudTd>
             <MudTd>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="@(() => ConfirmDeleteUserAsync(context))">
-                    Elimina
-                </MudButton>
+                <MudStack Row="true" Spacing="1">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick="@(() => ChangeRoleAsync(context))">
+                        Ruolo
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Password" OnClick="@(() => ResetPasswordAsync(context))">
+                        Password
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete"
+                               Disabled="@(context.Id == _currentUserId)"
+                               OnClick="@(() => ConfirmDeleteUserAsync(context))">
+                        Elimina
+                    </MudButton>
+                </MudStack>
             </MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
 
 @code {
-    private List<User> _users = new();
+    private List<AppUser> _users = new();
+    private string _search = string.Empty;
+    private int? _currentUserId;
+
+    private IEnumerable<AppUser> FilteredUsers
+        => string.IsNullOrWhiteSpace(_search)
+            ? _users
+            : _users.Where(u =>
+                (!string.IsNullOrWhiteSpace(u.Username) && u.Username.Contains(_search, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrWhiteSpace(u.Mail) && u.Mail.Contains(_search, StringComparison.OrdinalIgnoreCase)));
 
     protected override async Task OnInitializedAsync()
     {
-        _users = await Db.User.OrderBy(u => u.Name).ToListAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idRaw = authState.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (int.TryParse(idRaw, out var id))
+            _currentUserId = id;
+
+        await ReloadAsync();
     }
 
     private void GoToRegister()
@@ -45,24 +92,89 @@
         Nav.NavigateTo("/register");
     }
 
-    private async Task ConfirmDeleteUserAsync(User user)
+    private async Task ReloadAsync()
     {
+        _users = await Db.Users.OrderBy(u => u.Username).ToListAsync();
+        StateHasChanged();
+    }
+
+    private async Task ChangeRoleAsync(AppUser user)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(EditUserRoleDialog.Username)] = user.Username,
+            [nameof(EditUserRoleDialog.CurrentRole)] = user.Role
+        };
+
+        var dialog = Dialog.Show<EditUserRoleDialog>("Cambia ruolo", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        var newRole = (result.Data as string)?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(newRole) || newRole == user.Role)
+            return;
+
+        var entity = await Db.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+        if (entity is null)
+            return;
+
+        entity.Role = newRole;
+        await Db.SaveChangesAsync();
+        user.Role = newRole;
+        Snackbar.Add($"Ruolo aggiornato per {user.Username}", Severity.Success);
+    }
+
+    private async Task ResetPasswordAsync(AppUser user)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(ResetUserPasswordDialog.Username)] = user.Username
+        };
+
+        var dialog = Dialog.Show<ResetUserPasswordDialog>("Reset password", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        var newPassword = result.Data as string;
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return;
+
+        var entity = await Db.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
+        if (entity is null)
+            return;
+
+        entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await Db.SaveChangesAsync();
+        Snackbar.Add($"Password aggiornata per {user.Username}", Severity.Success);
+    }
+
+    private async Task ConfirmDeleteUserAsync(AppUser user)
+    {
+        if (user.Id == _currentUserId)
+        {
+            Snackbar.Add("Non puoi eliminare il tuo account mentre sei loggato.", Severity.Warning);
+            return;
+        }
+
         var result = await Dialog.ShowMessageBox(
             "Conferma eliminazione",
-            $"Sei sicuro di voler eliminare l'utente {user.Name}?",
+            $"Sei sicuro di voler eliminare l'utente {user.Username}?",
             yesText: "Elimina",
             cancelText: "Annulla",
             options: new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         if (result == true)
         {
-            var userEntity = await Db.User.FirstOrDefaultAsync(u => u.Id == user.Id);
+            var userEntity = await Db.Users.FirstOrDefaultAsync(u => u.Id == user.Id);
             if (userEntity is not null)
             {
-                Db.User.Remove(userEntity);
+                Db.Users.Remove(userEntity);
                 await Db.SaveChangesAsync();
                 _users.RemoveAll(u => u.Id == userEntity.Id);
                 StateHasChanged();
+                Snackbar.Add($"Utente {user.Username} eliminato.", Severity.Success);
             }
         }
     }

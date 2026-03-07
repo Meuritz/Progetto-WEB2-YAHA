@@ -1,0 +1,69 @@
+﻿@page "/manage-users"
+@using Microsoft.EntityFrameworkCore
+@using Progetto_Web_2_IoT_Auth.Data.Model
+@inject DbContextSQLite Db
+@inject NavigationManager Nav
+@inject IDialogService Dialog
+@using MudBlazor
+
+<MudPaper Class="pa-6 mt-6">
+    <MudStack Row="true" JustifyContent="space-between" Class="mb-4">
+        <MudText Typo="Typo.h5">Utenti Registrati</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="GoToRegister">
+            Aggiungi Utente
+        </MudButton>
+    </MudStack>
+
+    <MudTable Items="_users" Dense="true" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Nome</MudTh>
+            <MudTh>Ruolo</MudTh>
+            <MudTh>Gestione</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nome">@context.Name</MudTd>
+            <MudTd DataLabel="Ruolo">@context.Role</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="@(() => ConfirmDeleteUserAsync(context))">
+                    Elimina
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private List<User> _users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await Db.User.OrderBy(u => u.Name).ToListAsync();
+    }
+
+    private void GoToRegister()
+    {
+        Nav.NavigateTo("/register");
+    }
+
+    private async Task ConfirmDeleteUserAsync(User user)
+    {
+        var result = await Dialog.ShowMessageBox(
+            "Conferma eliminazione",
+            $"Sei sicuro di voler eliminare l'utente {user.Name}?",
+            yesText: "Elimina",
+            cancelText: "Annulla",
+            options: new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
+        if (result == true)
+        {
+            var userEntity = await Db.User.FirstOrDefaultAsync(u => u.Id == user.Id);
+            if (userEntity is not null)
+            {
+                Db.User.Remove(userEntity);
+                await Db.SaveChangesAsync();
+                _users.RemoveAll(u => u.Id == userEntity.Id);
+                StateHasChanged();
+            }
+        }
+    }
+}

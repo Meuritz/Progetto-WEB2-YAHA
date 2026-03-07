@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "GN2StWL7elg=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\HashGen\\HashGen.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\giamo\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

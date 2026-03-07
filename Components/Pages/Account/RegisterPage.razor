@@ -5,25 +5,37 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Progetto_Web_2_IoT_Auth.Components.Layout
 @using Progetto_Web_2_IoT_Auth.Data.Model
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "admin")]
 @inject DbContextSQLite Db
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject ILogger<RegisterPage> Logger
 @inject IJSRuntime JS
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Create User (Admin)</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
     <MudPaper Elevation="4" Class="pa-6">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">New User</MudText>
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">Create New User</MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-4" Color="Color.Secondary">
+            Admin Only - Create a new user account
+        </MudText>
 
         <EditForm EditContext="_editContext" OnValidSubmit="RegisterAsync">
             <DataAnnotationsValidator />
 
-            <MudTextField Label="Nome"
+            <MudTextField Label="Username"
                           @bind-Value="_model.Name"
                           Variant="Variant.Outlined"
                           For="@(() => _model.Name)"
+                          Class="mb-4"
+                          Required="true"
+                          Immediate="true" />
+
+            <MudTextField Label="Email"
+                          @bind-Value="_mail"
+                          Variant="Variant.Outlined"
                           Class="mb-4"
                           Required="true"
                           Immediate="true" />
@@ -52,30 +64,10 @@
                           AdornmentIcon="@(_showConfirm? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                           OnAdornmentClick="@(() => _showConfirm = !_showConfirm)" />
 
-            <MudRadioGroup 
-                T="string" 
-                Required="true" 
-                @bind-Value="_model.Role">
-
-                    <MudRadio Value="@("User")">User</MudRadio>
-                    <MudRadio Value="@("Admin")">Admin</MudRadio>
-            
-             </MudRadioGroup>
-            
-            <MudSelect T="int" Label="User Group" @bind-Value="_selectedUserGroupId" Required="true" Class="mb-3">
-                @if (_userGroups.Count == 0)
-                {
-                    <MudSelectItem Value="0">Nessun gruppo disponibile</MudSelectItem>
-                }
-                else
-                {
-                    @foreach (var g in _userGroups)
-                    {
-                        <MudSelectItem Value="@g.Id">@g.Name</MudSelectItem>
-                    }
-                }
-            </MudSelect>
-    
+            <MudRadioGroup T="string" Required="true" @bind-Value="_model.Role">
+                <MudRadio Value="@("user")">User</MudRadio>
+                <MudRadio Value="@("admin")">Admin</MudRadio>
+            </MudRadioGroup>
 
             <MudButton ButtonType="ButtonType.Submit"
                        Variant="Variant.Filled"
@@ -94,21 +86,6 @@
     </MudPaper>
 </MudContainer>
 
-<form id="serverLoginForm" method="post" action="/login-action" style="display:none;">
-    <input type="hidden" name="name" id="hiddenName" />
-    <input type="hidden" name="password" id="hiddenPassword" />
-    <input type="hidden" name="role" id="hiddenRole" />
-</form>
-
-<script>
-    window.submitLoginForm = (data) => {
-        document.getElementById('hiddenName').value = data.name;
-        document.getElementById('hiddenPassword').value = data.password;
-        document.getElementById('hiddenRole').value = data.role;
-        document.getElementById('serverLoginForm').submit();    
-    };
-</script>
-
 @code {
     private RegisterViewModel _model = new();
     private EditContext _editContext;
@@ -118,23 +95,14 @@
     private bool _confirmTouched;
     private string? _resultMessage;
     private Severity _resultSeverity;
-    private List<UserGroup> _userGroups = new();
-    private int _selectedUserGroupId;
 
-    protected override async Task OnInitializedAsync()
+    private string _mail = string.Empty;
+
+    protected override Task OnInitializedAsync()
     {
         _editContext = new EditContext(_model);
         _editContext.OnFieldChanged += OnFieldChanged;
-        _userGroups = await Db.UserGroup.OrderBy(g => g.Name).ToListAsync();
-        if (_userGroups.Count == 0)
-        {
-            // Ensure default exists if DB is empty
-            var defaultGroup = new UserGroup { Name = "default" };
-            Db.UserGroup.Add(defaultGroup);
-            await Db.SaveChangesAsync();
-            _userGroups = await Db.UserGroup.OrderBy(g => g.Name).ToListAsync();
-        }
-        _selectedUserGroupId = _userGroups.FirstOrDefault()?.Id ?? 0;
+        return Task.CompletedTask;
     }
 
     private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
@@ -157,6 +125,7 @@
     {
         _editContext.OnFieldChanged -= OnFieldChanged;
         _model = new RegisterViewModel();
+        _mail = string.Empty;
         _editContext = new EditContext(_model);
         _editContext.OnFieldChanged += OnFieldChanged;
         _confirmTouched = false;
@@ -171,31 +140,32 @@
 
         try
         {
-            using var tx = await Db.Database.BeginTransactionAsync();
-
-            var user = new User
+            var username = _model.Name.Trim();
+            var mail = _mail.Trim();
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(mail))
             {
-                Name = _model.Name.Trim(),
-                Password = BCrypt.Net.BCrypt.HashPassword(_model.Password),
-                Role = _model.Role.Trim(),
-            };
-
-            // Assign selected user group (fallback to default if not found)
-            var selectedGroup = await Db.UserGroup.FirstOrDefaultAsync(g => g.Id == _selectedUserGroupId);
-            if (selectedGroup == null)
-            {
-                selectedGroup = await Db.UserGroup.FirstOrDefaultAsync(g => g.Name == "default")
-                    ?? new UserGroup { Name = "default" };
-                if (selectedGroup.Id == 0)
-                {
-                    Db.UserGroup.Add(selectedGroup);
-                    await Db.SaveChangesAsync();
-                }
+                Snackbar.Add("Username e email sono obbligatori.", Severity.Error);
+                return;
             }
 
-            user.userGroup = selectedGroup;
+            var exists = await Db.Users.AnyAsync(u => u.Username == username || u.Mail == mail);
+            if (exists)
+            {
+                Snackbar.Add("Username o email già in uso.", Severity.Warning);
+                return;
+            }
 
-            Db.User.Add(user);
+            using var tx = await Db.Database.BeginTransactionAsync();
+
+            var user = new AppUser
+            {
+                Username = username,
+                Mail = mail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(_model.Password),
+                Role = _model.Role.Trim().ToLowerInvariant(),
+            };
+
+            Db.Users.Add(user);
             await Db.SaveChangesAsync();
             await tx.CommitAsync();
 
@@ -208,7 +178,8 @@
         {
             _resultMessage = "Registrazione fallita.";
             _resultSeverity = Severity.Error;
-            Snackbar.Add("Error" + ex, Severity.Error);
+            Logger.LogError(ex, "Register error");
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
         }
         finally
         {

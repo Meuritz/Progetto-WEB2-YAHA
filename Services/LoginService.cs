@@ -29,16 +29,18 @@ public class LoginService : ILoginService
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password))
                 return LoginResult.Failure("name and password are required");
 
-            var user = await _context.User.FirstOrDefaultAsync(u => u.Name == name);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
+            var username = name.Trim();
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
             {
-                _logger.LogWarning("Invalid login for {Name}", " name not valid");
+                _logger.LogWarning("Invalid login for {Name}", username);
                 return LoginResult.Failure("Invalid name or password");
             }
 
-            var role = string.IsNullOrWhiteSpace(user.Role) ? "User" : user.Role;
-            _logger.LogInformation("Login ok for {name} (ID {Id}, Role {Role})", name, user.Id, role);
-            return LoginResult.Success(user.Id, user.Name, role);
+            var role = string.IsNullOrWhiteSpace(user.Role) ? "user" : user.Role.Trim().ToLowerInvariant();
+            _logger.LogInformation("Login ok for {name} (ID {Id}, Role {Role})", username, user.Id, role);
+            return LoginResult.Success(user.Id, user.Username, role);
         }
         catch (Exception ex)
         {
