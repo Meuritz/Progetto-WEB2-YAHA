@@ -48,6 +48,10 @@
                         Ruolo
                     </MudButton>
 
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VpnKey" Disabled="@(string.Equals(context.Role, "admin", StringComparison.OrdinalIgnoreCase))" OnClick="@(() => EditAccessAsync(context))">
+                        Accessi
+                    </MudButton>
+
                     <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Password" OnClick="@(() => ResetPasswordAsync(context))">
                         Password
                     </MudButton>
@@ -94,7 +98,11 @@
 
     private async Task ReloadAsync()
     {
-        _users = await Db.Users.OrderBy(u => u.Username).ToListAsync();
+        _users = await Db.Users
+            .Include(u => u.Accesses)
+            .ThenInclude(a => a.Zone)
+            .OrderBy(u => u.Username)
+            .ToListAsync();
         StateHasChanged();
     }
 
@@ -120,6 +128,14 @@
             return;
 
         entity.Role = newRole;
+
+        if (string.Equals(newRole, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            var toRemove = await Db.Accesses.Where(a => a.UserId == entity.Id).ToListAsync();
+            if (toRemove.Count > 0)
+                Db.Accesses.RemoveRange(toRemove);
+        }
+
         await Db.SaveChangesAsync();
         user.Role = newRole;
         Snackbar.Add($"Ruolo aggiornato per {user.Username}", Severity.Success);
@@ -148,6 +164,29 @@
         entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await Db.SaveChangesAsync();
         Snackbar.Add($"Password aggiornata per {user.Username}", Severity.Success);
+    }
+
+    private async Task EditAccessAsync(AppUser user)
+    {
+        if (string.Equals(user.Role, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Add("Gli admin hanno accesso a tutte le zone: non è necessario impostare accessi.", Severity.Info);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(EditUserAccessDialog.UserId)] = user.Id,
+            [nameof(EditUserAccessDialog.Username)] = user.Username
+        };
+
+        var dialog = Dialog.Show<EditUserAccessDialog>("Gestisci accessi", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        await ReloadAsync();
+        Snackbar.Add($"Accessi aggiornati per {user.Username}", Severity.Success);
     }
 
     private async Task ConfirmDeleteUserAsync(AppUser user)

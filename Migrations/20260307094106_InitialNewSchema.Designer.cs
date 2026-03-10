@@ -10,14 +10,14 @@ using Progetto_Web_2_IoT_Auth.Data;
 namespace Progetto_Web_2_IoT_Auth.Migrations
 {
     [DbContext(typeof(DbContextSQLite))]
-    [Migration("20260304195030_InitialNewSchema")]
+    [Migration("20260307094106_InitialNewSchema")]
     partial class InitialNewSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Access", b =>
                 {
@@ -43,15 +43,6 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         .IsUnique();
 
                     b.ToTable("access", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AccessLevel = "admin",
-                            UserId = 1,
-                            ZoneId = 1
-                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.AppUser", b =>
@@ -91,7 +82,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         {
                             Id = 1,
                             Mail = "admin@example.local",
-                            PasswordHash = "$2a$11$wBHBpKnudJZ9U1yNZT5l5u4xGkVmI0QRjvEm0ZQ76C8/3Ha7jKOaC",
+                            PasswordHash = "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS",
                             Role = "admin",
                             Username = "admin"
                         });

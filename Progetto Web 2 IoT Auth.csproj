@@ -33,5 +33,9 @@
     <None Remove="HashGen\**\*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".github\copilot-instructions.md" />
+  </ItemGroup>
+
 </Project>
                 

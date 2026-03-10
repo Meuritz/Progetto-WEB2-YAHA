@@ -124,11 +124,6 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 columns: new[] { "Id", "Name", "Type" },
                 values: new object[] { 1, "default", "default" });
 
-            migrationBuilder.InsertData(
-                table: "access",
-                columns: new[] { "Id", "AccessLevel", "UserId", "ZoneId" },
-                values: new object[] { 1, "admin", 1, 1 });
-
             migrationBuilder.CreateIndex(
                 name: "IX_access_UserId_ZoneId",
                 table: "access",

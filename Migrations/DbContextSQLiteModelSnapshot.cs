@@ -14,7 +14,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Access", b =>
                 {
@@ -40,15 +40,6 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         .IsUnique();
 
                     b.ToTable("access", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            AccessLevel = "admin",
-                            UserId = 1,
-                            ZoneId = 1
-                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.AppUser", b =>

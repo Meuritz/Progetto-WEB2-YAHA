@@ -87,7 +87,7 @@ namespace Progetto_Web_2_IoT_Auth.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Seed: a default zone + admin user + full access
+            // Seed: a default zone + admin user
             // Must be deterministic for EF migrations: BCrypt.HashPassword uses random salts.
             // Default admin password: "admin"
             const string seededAdminHash = "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS";
@@ -106,14 +106,6 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 Mail = "admin@example.local",
                 PasswordHash = seededAdminHash,
                 Role = "admin"
-            });
-
-            modelBuilder.Entity<Access>().HasData(new
-            {
-                Id = 1,
-                UserId = 1,
-                ZoneId = 1,
-                AccessLevel = "admin"
             });
         }
     }

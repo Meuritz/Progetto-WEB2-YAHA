@@ -54,6 +54,25 @@ if (app.Environment.IsDevelopment())
             await db.SaveChangesAsync();
             log.LogInformation("Updated default admin password hash in existing dev database (username=admin, password=admin).");
         }
+
+        var adminIds = await db.Users
+            .Where(u => u.Role == "admin")
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        if (adminIds.Count > 0)
+        {
+            var invalidAccessRows = await db.Accesses
+                .Where(a => adminIds.Contains(a.UserId) || a.AccessLevel == "admin")
+                .ToListAsync();
+
+            if (invalidAccessRows.Count > 0)
+            {
+                db.Accesses.RemoveRange(invalidAccessRows);
+                await db.SaveChangesAsync();
+                log.LogInformation("Removed {Count} invalid access rows for admin users.", invalidAccessRows.Count);
+            }
+        }
     }
     catch (Exception ex)
     {
