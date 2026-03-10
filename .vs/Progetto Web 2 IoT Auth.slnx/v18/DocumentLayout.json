@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\components\\pages\\account\\logoutpage.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:components\\pages\\account\\logoutpage.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\components\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:components\\layout\\navmenu.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -31,8 +39,20 @@
       "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:components\\pages\\account\\manageuserspage.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
-      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\endpoints\\authendpoints.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:endpoints\\authendpoints.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\components\\pages\\devices\\devicespage.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:components\\pages\\devices\\devicespage.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\components\\pages\\devices\\dialogs\\addzonedialog.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:components\\pages\\devices\\dialogs\\addzonedialog.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|c:\\users\\giamo\\progetto-web2-yaha\\dbcontextsqlite.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0C397CA5-CCF1-2C94-BA8F-B7E088E534EC}|Progetto Web 2 IoT Auth.csproj|solutionrelative:dbcontextsqlite.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -42,7 +62,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -50,20 +70,85 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 12,
+              "Title": "DbContextSQLite.cs",
+              "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\DbContextSQLite.cs",
+              "RelativeDocumentMoniker": "DbContextSQLite.cs",
+              "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\DbContextSQLite.cs",
+              "RelativeToolTip": "DbContextSQLite.cs",
+              "ViewState": "AgIAACgAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-10T17:27:57.319Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "AddZoneDialog.razor",
+              "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Devices\\Dialogs\\AddZoneDialog.razor",
+              "RelativeDocumentMoniker": "Components\\Pages\\Devices\\Dialogs\\AddZoneDialog.razor",
+              "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Devices\\Dialogs\\AddZoneDialog.razor",
+              "RelativeToolTip": "Components\\Pages\\Devices\\Dialogs\\AddZoneDialog.razor",
+              "ViewState": "AgIAAA0AAAAAAAAAAIBJwGYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-10T17:26:32.315Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "DevicesPage.razor",
+              "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Devices\\DevicesPage.razor",
+              "RelativeDocumentMoniker": "Components\\Pages\\Devices\\DevicesPage.razor",
+              "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Devices\\DevicesPage.razor",
+              "RelativeToolTip": "Components\\Pages\\Devices\\DevicesPage.razor",
+              "ViewState": "AgIAAAIAAAAAAAAAAIBJwHwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-10T17:16:44.146Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "LogoutPage.razor",
+              "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Account\\LogoutPage.razor",
+              "RelativeDocumentMoniker": "Components\\Pages\\Account\\LogoutPage.razor",
+              "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Account\\LogoutPage.razor",
+              "RelativeToolTip": "Components\\Pages\\Account\\LogoutPage.razor",
+              "ViewState": "AgIAACMAAAAAAAAAAAApwDIAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-03-10T17:09:05.423Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "AuthEndpoints.cs",
+              "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Endpoints\\AuthEndpoints.cs",
+              "RelativeDocumentMoniker": "Endpoints\\AuthEndpoints.cs",
+              "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Endpoints\\AuthEndpoints.cs",
+              "RelativeToolTip": "Endpoints\\AuthEndpoints.cs",
+              "ViewState": "AgIAAFoAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-10T17:08:52.662Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": ".gitignore",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\.gitignore",
               "RelativeDocumentMoniker": ".gitignore",
               "ToolTip": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\.gitignore",
               "RelativeToolTip": ".gitignore",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
               "WhenOpened": "2026-03-10T16:58:40.272Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "NavMenu.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Layout\\NavMenu.razor",
               "RelativeDocumentMoniker": "Components\\Layout\\NavMenu.razor",
@@ -76,7 +161,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "MainLayout.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Layout\\MainLayout.razor",
               "RelativeDocumentMoniker": "Components\\Layout\\MainLayout.razor",
@@ -88,7 +173,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "Routes.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Routes.razor",
               "RelativeDocumentMoniker": "Components\\Routes.razor",
@@ -100,7 +185,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 5,
               "Title": "App.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\App.razor",
               "RelativeDocumentMoniker": "Components\\App.razor",
@@ -112,7 +197,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "_Imports.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\_Imports.razor",
               "RelativeDocumentMoniker": "Components\\_Imports.razor",
@@ -124,7 +209,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "Home.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Home.razor",
               "RelativeDocumentMoniker": "Components\\Pages\\Home.razor",
@@ -136,7 +221,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "ManageUsersPage.razor",
               "DocumentMoniker": "C:\\Users\\giamo\\Progetto-WEB2-YAHA\\Components\\Pages\\Account\\ManageUsersPage.razor",
               "RelativeDocumentMoniker": "Components\\Pages\\Account\\ManageUsersPage.razor",

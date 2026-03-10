@@ -89,7 +89,7 @@ public static class AuthEndpoints
         {
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             logger.LogInformation("Logout");
-            context.Response.Redirect("/logout");
+            context.Response.Redirect("/logout?done=1");
         }
         catch (Exception ex)
         {

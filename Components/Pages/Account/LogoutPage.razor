@@ -1,15 +1,16 @@
 ﻿@page "/logout"
 @using MudBlazor
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <MudPaper Class="pa-6 mx-auto mt-12" MaxWidth="400px" Elevation="6">
     <MudStack Spacing="2" AlignItems="AlignItems.Center">
         <MudIcon Icon="@Icons.Material.Filled.ExitToApp" Color="Color.Primary" Size="Size.Large" />
         <MudText Typo="Typo.h5" Align="Align.Center">
-            Logout effettuato
+            @_title
         </MudText>
         <MudText Typo="Typo.body1" Align="Align.Center">
-            Verrai reindirizzato alla pagina di login tra pochi secondi.
+            @_message
         </MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GoToLogin">
             Torna al Login
@@ -17,11 +18,41 @@
     </MudStack>
 </MudPaper>
 
+<form id="serverLogoutForm" method="post" action="/logout-action" style="display:none;"></form>
+
+<script>
+    window.submitLogoutForm = () => {
+        const form = document.getElementById('serverLogoutForm');
+        if (form) form.submit();
+    };
+</script>
+
 @code {
+    private bool _done;
+    private string _title = "Logout in corso...";
+    private string _message = "Attendi...";
+
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(2000);
-        Navigation.NavigateTo("/login", forceLoad: true);
+        var uri = new Uri(Navigation.Uri);
+        var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+        _done = q.TryGetValue("done", out var done) && done == "1";
+
+        if (_done)
+        {
+            _title = "Logout effettuato";
+            _message = "Verrai reindirizzato alla pagina di login tra pochi secondi.";
+            await Task.Delay(2000);
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_done)
+        {
+            await JS.InvokeVoidAsync("submitLogoutForm");
+        }
     }
 
     private void GoToLogin()

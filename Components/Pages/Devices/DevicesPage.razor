@@ -1,0 +1,380 @@
+@page "/devices"
+@using Microsoft.EntityFrameworkCore
+@using Progetto_Web_2_IoT_Auth.Data.Model
+@using Progetto_Web_2_IoT_Auth.Components.Pages.Devices.Dialogs
+@inject DbContextSQLite Db
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+
+@attribute [Authorize]
+
+<PageTitle>Dispositivi</PageTitle>
+
+<MudPaper Class="pa-6 mt-6">
+    <MudStack Spacing="2">
+        <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5">Dispositivi</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
+        </MudStack>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudTextField @bind-Value="_search"
+                              Placeholder="Cerca per nome, tipo o zona..."
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_selectedZoneId" Style="flex:1">
+                        <MudSelectItem T="int?" Value="@((int?)null)">(tutte)</MudSelectItem>
+                        @foreach (var z in _zones)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (_isAdmin)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_loading" OnClick="OpenAddZoneDialogAsync" />
+                    }
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string" Label="Tipo dispositivo" Variant="Variant.Outlined" Margin="Margin.Dense" MultiSelection="true" SelectedValues="_selectedTypes" SelectedValuesChanged="OnSelectedTypesChanged">
+                    @foreach (var t in _deviceTypes)
+                    {
+                        <MudSelectItem Value="@t">@t</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudSelect T="string" Label="Power" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_powerFilter">
+                    <MudSelectItem Value="@PowerFilterAll">tutti</MudSelectItem>
+                    <MudSelectItem Value="@PowerFilterOn">on</MudSelectItem>
+                    <MudSelectItem Value="@PowerFilterOff">off</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudStack>
+
+    <MudDivider Class="my-4" />
+
+    @if (_loading)
+    {
+        <MudStack Class="pa-6" AlignItems="AlignItems.Center">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </MudStack>
+    }
+    else if (_zones.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            Non hai accesso ad alcuna zona (oppure non ci sono zone configurate).
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="FilteredDevices" Dense="true" Hover="true" Bordered="true" Striped="true">
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Zona</MudTh>
+                <MudTh Align="Right">St</MudTh>
+                <MudTh>Power</MudTh>
+                <MudTh Align="Right">Level</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome">@context.Name</MudTd>
+                <MudTd DataLabel="Tipo">@context.Type</MudTd>
+                <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
+                <MudTd DataLabel="St" Align="Right">@context.St</MudTd>
+                <MudTd DataLabel="Power">
+                    @if (context.CanOperate)
+                    {
+                        <MudSwitch T="bool" Checked="@context.Power" CheckedChanged="@((bool v) => TogglePowerAsync(context, v))" Color="Color.Primary" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@(context.Power ? "on" : "off")</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Level" Align="Right">
+                    @if (context.CanOperate)
+                    {
+                        <MudNumericField T="int" Value="@context.Level" ValueChanged="@((int v) => UpdateLevelAsync(context, v))" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 110px" />
+                    }
+                    else
+                    {
+                        @context.Level
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private const string PowerFilterAll = "all";
+    private const string PowerFilterOn = "on";
+    private const string PowerFilterOff = "off";
+
+    private bool _loading;
+
+    private readonly List<Zone> _zones = new();
+    private readonly List<DeviceRow> _devices = new();
+    private readonly List<string> _deviceTypes = new();
+    private readonly Dictionary<int, string> _accessLevelByZoneId = new();
+
+    private string _search = string.Empty;
+    private int? _selectedZoneId;
+    private string _powerFilter = PowerFilterAll;
+    private HashSet<string> _selectedTypes = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _isAdmin;
+    private int? _userId;
+
+    private IEnumerable<DeviceRow> FilteredDevices
+    {
+        get
+        {
+            IEnumerable<DeviceRow> query = _devices;
+
+            if (_selectedZoneId is int zid)
+                query = query.Where(d => d.ZoneId == zid);
+
+            if (_selectedTypes.Count > 0)
+                query = query.Where(d => _selectedTypes.Contains(d.Type ?? string.Empty));
+
+            query = _powerFilter switch
+            {
+                PowerFilterOn => query.Where(d => d.Power),
+                PowerFilterOff => query.Where(d => !d.Power),
+                _ => query
+            };
+
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                var s = _search.Trim();
+                query = query.Where(d =>
+                    (!string.IsNullOrWhiteSpace(d.Name) && d.Name.Contains(s, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(d.Type) && d.Type.Contains(s, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrWhiteSpace(d.ZoneName) && d.ZoneName.Contains(s, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return query;
+        }
+    }
+
+    private async Task OpenAddZoneDialogAsync()
+    {
+        if (!_isAdmin)
+            return;
+
+        var dialog = Dialog.Show<AddZoneDialog>("Aggiungi zona",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        if (result.Data is int newZoneId)
+        {
+            await ReloadAsync();
+            _selectedZoneId = newZoneId;
+        }
+        else
+        {
+            await ReloadAsync();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            _isAdmin = user.IsInRole("admin");
+
+            var idRaw = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            _userId = int.TryParse(idRaw, out var id) ? id : null;
+
+            _zones.Clear();
+            _devices.Clear();
+            _deviceTypes.Clear();
+            _accessLevelByZoneId.Clear();
+
+            List<int> zoneIds;
+
+            if (_isAdmin)
+            {
+                var zones = await Db.Zones
+                    .AsNoTracking()
+                    .OrderBy(z => z.Name)
+                    .ToListAsync();
+
+                _zones.AddRange(zones);
+                zoneIds = zones.Select(z => z.Id).ToList();
+            }
+            else if (_userId is int uid)
+            {
+                var accesses = await Db.Accesses
+                    .AsNoTracking()
+                    .Include(a => a.Zone)
+                    .Where(a => a.UserId == uid && (a.AccessLevel == "view" || a.AccessLevel == "operator"))
+                    .OrderBy(a => a.Zone.Name)
+                    .ToListAsync();
+
+                foreach (var a in accesses)
+                {
+                    if (!_accessLevelByZoneId.ContainsKey(a.ZoneId))
+                        _accessLevelByZoneId[a.ZoneId] = (a.AccessLevel ?? string.Empty).Trim().ToLowerInvariant();
+                }
+
+                var zones = accesses.Select(a => a.Zone).DistinctBy(z => z.Id).ToList();
+                _zones.AddRange(zones);
+                zoneIds = zones.Select(z => z.Id).ToList();
+            }
+            else
+            {
+                zoneIds = new List<int>();
+            }
+
+            if (zoneIds.Count > 0)
+            {
+                var devices = await Db.Devices
+                    .AsNoTracking()
+                    .Include(d => d.Zone)
+                    .Where(d => zoneIds.Contains(d.ZoneId))
+                    .OrderBy(d => d.Zone.Name)
+                    .ThenBy(d => d.Name)
+                    .ToListAsync();
+
+                foreach (var d in devices)
+                {
+                    _devices.Add(new DeviceRow
+                    {
+                        Id = d.Id,
+                        ZoneId = d.ZoneId,
+                        ZoneName = d.Zone?.Name ?? string.Empty,
+                        Name = d.Name,
+                        Type = d.Type,
+                        St = d.St,
+                        Power = d.Power,
+                        Level = d.Level,
+                        CanOperate = CanOperateZone(d.ZoneId)
+                    });
+                }
+
+                _deviceTypes.AddRange(
+                    _devices
+                        .Select(d => d.Type)
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(t => t, StringComparer.OrdinalIgnoreCase));
+            }
+
+            if (_selectedZoneId is int sel && zoneIds.Count > 0 && !zoneIds.Contains(sel))
+                _selectedZoneId = null;
+
+            _selectedTypes.RemoveWhere(t => !_deviceTypes.Contains(t, StringComparer.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnSelectedTypesChanged(IEnumerable<string> values)
+    {
+        _selectedTypes = values
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private bool CanOperateZone(int zoneId)
+        => _isAdmin || (_accessLevelByZoneId.TryGetValue(zoneId, out var level) && level == "operator");
+
+    private async Task TogglePowerAsync(DeviceRow row, bool value)
+    {
+        if (!row.CanOperate)
+            return;
+
+        try
+        {
+            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
+            if (entity is null)
+                return;
+
+            if (!CanOperateZone(entity.ZoneId))
+            {
+                Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
+                return;
+            }
+
+            entity.Power = value;
+            await Db.SaveChangesAsync();
+
+            row.Power = value;
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante l'aggiornamento dello stato power.", Severity.Error);
+        }
+    }
+
+    private async Task UpdateLevelAsync(DeviceRow row, int value)
+    {
+        if (!row.CanOperate)
+            return;
+
+        try
+        {
+            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
+            if (entity is null)
+                return;
+
+            if (!CanOperateZone(entity.ZoneId))
+            {
+                Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
+                return;
+            }
+
+            entity.Level = value;
+            await Db.SaveChangesAsync();
+
+            row.Level = value;
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante l'aggiornamento del livello.", Severity.Error);
+        }
+    }
+
+    private sealed class DeviceRow
+    {
+        public int Id { get; set; }
+        public int ZoneId { get; set; }
+        public string ZoneName { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public int St { get; set; }
+        public bool Power { get; set; }
+        public int Level { get; set; }
+        public bool CanOperate { get; set; }
+    }
+}

@@ -1,0 +1,102 @@
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Nuova zona</MudText>
+
+            <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Il nome è obbligatorio" />
+
+            <MudSelect T="string" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_type">
+                <MudSelectItem Value="@ZoneTypeInterno">interno</MudSelectItem>
+                <MudSelectItem Value="@ZoneTypeEsterno">esterno</MudSelectItem>
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">Crea</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private const string ZoneTypeInterno = "interno";
+    private const string ZoneTypeEsterno = "esterno";
+
+    private string _name = string.Empty;
+    private string _type = ZoneTypeInterno;
+    private bool _saving;
+
+    private async Task SaveAsync()
+    {
+        if (_saving)
+            return;
+
+        _saving = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.IsInRole("admin"))
+            {
+                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            var name = (_name ?? string.Empty).Trim();
+            var type = (_type ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+                return;
+
+            type = type.ToLowerInvariant();
+            if (type is not (ZoneTypeInterno or ZoneTypeEsterno))
+            {
+                Snackbar.Add("Tipo non valido: scegli 'interno' o 'esterno'.", Severity.Warning);
+                return;
+            }
+
+            var exists = await Db.Zones
+                .AsNoTracking()
+                .AnyAsync(z => z.Name == name);
+
+            if (exists)
+            {
+                Snackbar.Add("Esiste già una zona con questo nome.", Severity.Warning);
+                return;
+            }
+
+            var zone = new Zone
+            {
+                Name = name,
+                Type = type
+            };
+
+            Db.Zones.Add(zone);
+            await Db.SaveChangesAsync();
+
+            Snackbar.Add($"Zona '{zone.Name}' creata.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(zone.Id));
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante la creazione della zona.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
