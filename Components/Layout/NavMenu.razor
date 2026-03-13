@@ -1,6 +1,10 @@
 ﻿@using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 
+@inject Progetto_Web_2_IoT_Auth.Services.ThemeService Theme
+@inject IJSRuntime JS
+@implements IDisposable
+
 <AuthorizeView>
     <Authorized>
         <MudPaper Class="d-flex flex-row align-items-center p-2" Elevation="1">
@@ -15,8 +19,36 @@
                 </Authorized>
             </AuthorizeView>
 
+            <MudSpacer />
             <MudNavLink Href="/logout" Icon="@Icons.Material.Filled.ExitToApp" Class="mx-2">Logout</MudNavLink>
+
+            <MudIconButton Icon="@(Theme.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Default"
+                           Class="mx-2"
+                           OnClick="ToggleThemeAsync" />
         </MudPaper>
     </Authorized>
 </AuthorizeView>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Theme.OnChange += OnThemeChanged;
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        await Theme.ToggleAsync(JS);
+    }
+
+    private void OnThemeChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Theme.OnChange -= OnThemeChanged;
+    }
+}
 

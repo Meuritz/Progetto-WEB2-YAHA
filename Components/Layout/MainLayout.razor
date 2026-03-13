@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+
+@inject Progetto_Web_2_IoT_Auth.Services.ThemeService Theme
+@inject IJSRuntime JS
 
     <NavMenu />
     <main>
@@ -14,9 +18,32 @@
 </div>
 
 
-<MudThemeProvider />
+<MudThemeProvider IsDarkMode="@Theme.IsDarkMode" />
 <MudPopoverProvider />
 
 <MudDialogProvider />
 
 <MudSnackbarProvider />
+
+@code {
+    protected override void OnInitialized()
+    {
+        Theme.OnChange += OnThemeChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await Theme.InitializeAsync(JS);
+    }
+
+    private void OnThemeChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Theme.OnChange -= OnThemeChanged;
+    }
+}
