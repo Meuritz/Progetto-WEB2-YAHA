@@ -13,6 +13,7 @@ namespace Progetto_Web_2_IoT_Auth.Data
         public DbSet<Zone> Zones { get; set; }
         public DbSet<Access> Accesses { get; set; }
         public DbSet<Device> Devices { get; set; }
+        public DbSet<DeviceType> DeviceTypes { get; set; }
         public DbSet<Automation> Automations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -66,12 +67,25 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 b.ToTable("device");
                 b.HasKey(x => x.Id);
                 b.Property(x => x.Name).IsRequired();
-                b.Property(x => x.Type).IsRequired();
+                b.Property(x => x.DeviceTypeId).IsRequired();
 
                 b.HasOne(x => x.Zone)
                     .WithMany(z => z.Devices)
                     .HasForeignKey(x => x.ZoneId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(x => x.DeviceType)
+                    .WithMany(t => t.Devices)
+                    .HasForeignKey(x => x.DeviceTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<DeviceType>(b =>
+            {
+                b.ToTable("device_type");
+                b.HasKey(x => x.Id);
+                b.Property(x => x.Name).IsRequired();
+                b.HasIndex(x => x.Name).IsUnique();
             });
 
             modelBuilder.Entity<Automation>(b =>
@@ -107,6 +121,12 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 PasswordHash = seededAdminHash,
                 Role = "admin"
             });
+
+            modelBuilder.Entity<DeviceType>().HasData(
+                new DeviceType { Id = 1, Name = "lampada" },
+                new DeviceType { Id = 2, Name = "presa" },
+                new DeviceType { Id = 3, Name = "sensore" },
+                new DeviceType { Id = 4, Name = "termostato" });
         }
     }
 }

@@ -7,11 +7,10 @@
         public int ZoneId { get; set; }
         public Zone Zone { get; set; } = null!;
 
+        public int DeviceTypeId { get; set; }
+        public DeviceType DeviceType { get; set; } = null!;
+
         public string Name { get; set; } = string.Empty;
-
-        public string Type { get; set; } = string.Empty;
-
-        public int St { get; set; }
 
         public bool Power { get; set; }
 

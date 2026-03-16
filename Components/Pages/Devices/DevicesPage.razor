@@ -15,7 +15,15 @@
     <MudStack Spacing="2">
         <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h5">Dispositivi</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
+                    @if (_isAdmin)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDeviceDialogAsync" Disabled="_loading">
+                            Aggiungi dispositivo
+                        </MudButton>
+                    }
+                </MudStack>
         </MudStack>
 
         <MudGrid Spacing="2">
@@ -86,7 +94,6 @@
                 <MudTh>Nome</MudTh>
                 <MudTh>Tipo</MudTh>
                 <MudTh>Zona</MudTh>
-                <MudTh Align="Right">St</MudTh>
                 <MudTh>Power</MudTh>
                 <MudTh Align="Right">Level</MudTh>
             </HeaderContent>
@@ -94,7 +101,6 @@
                 <MudTd DataLabel="Nome">@context.Name</MudTd>
                 <MudTd DataLabel="Tipo">@context.Type</MudTd>
                 <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
-                <MudTd DataLabel="St" Align="Right">@context.St</MudTd>
                 <MudTd DataLabel="Power">
                     @if (context.CanOperate)
                     {
@@ -195,6 +201,26 @@
         }
     }
 
+    private async Task OpenAddDeviceDialogAsync()
+    {
+        if (!_isAdmin)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(AddDeviceDialog.DefaultZoneId)] = _selectedZoneId
+        };
+
+        var dialog = Dialog.Show<AddDeviceDialog>("Aggiungi dispositivo", parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        await ReloadAsync();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
@@ -259,6 +285,7 @@
                 var devices = await Db.Devices
                     .AsNoTracking()
                     .Include(d => d.Zone)
+                    .Include(d => d.DeviceType)
                     .Where(d => zoneIds.Contains(d.ZoneId))
                     .OrderBy(d => d.Zone.Name)
                     .ThenBy(d => d.Name)
@@ -272,8 +299,7 @@
                         ZoneId = d.ZoneId,
                         ZoneName = d.Zone?.Name ?? string.Empty,
                         Name = d.Name,
-                        Type = d.Type,
-                        St = d.St,
+                        Type = d.DeviceType?.Name ?? string.Empty,
                         Power = d.Power,
                         Level = d.Level,
                         CanOperate = CanOperateZone(d.ZoneId)
@@ -372,7 +398,6 @@
         public string ZoneName { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        public int St { get; set; }
         public bool Power { get; set; }
         public int Level { get; set; }
         public bool CanOperate { get; set; }

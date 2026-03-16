@@ -10,8 +10,8 @@ using Progetto_Web_2_IoT_Auth.Data;
 namespace Progetto_Web_2_IoT_Auth.Migrations
 {
     [DbContext(typeof(DbContextSQLite))]
-    [Migration("20260307094106_InitialNewSchema")]
-    partial class InitialNewSchema
+    [Migration("20260316192800_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -124,6 +124,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("DeviceTypeId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Level")
                         .HasColumnType("INTEGER");
 
@@ -134,21 +137,56 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     b.Property<bool>("Power")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("St")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("ZoneId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DeviceTypeId");
+
                     b.HasIndex("ZoneId");
 
                     b.ToTable("device", (string)null);
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.DeviceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("device_type", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "lampada"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "presa"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "sensore"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "termostato"
+                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Zone", b =>
@@ -210,11 +248,19 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Device", b =>
                 {
+                    b.HasOne("Progetto_Web_2_IoT_Auth.Data.Model.DeviceType", "DeviceType")
+                        .WithMany("Devices")
+                        .HasForeignKey("DeviceTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Progetto_Web_2_IoT_Auth.Data.Model.Zone", "Zone")
                         .WithMany("Devices")
                         .HasForeignKey("ZoneId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("DeviceType");
 
                     b.Navigation("Zone");
                 });
@@ -227,6 +273,11 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Device", b =>
                 {
                     b.Navigation("Automations");
+                });
+
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.DeviceType", b =>
+                {
+                    b.Navigation("Devices");
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Zone", b =>

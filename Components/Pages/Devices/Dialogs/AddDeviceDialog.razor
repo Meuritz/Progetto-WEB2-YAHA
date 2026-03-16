@@ -1,0 +1,177 @@
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Nuovo dispositivo</MudText>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_zones.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    Nessuna zona disponibile.
+                </MudAlert>
+            }
+            else if (_types.Count == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    Nessun tipo dispositivo configurato.
+                </MudAlert>
+            }
+            else
+            {
+                <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_zoneId">
+                    @foreach (var z in _zones)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Il nome è obbligatorio" />
+
+                <MudSelect T="int?" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_typeId" Required="true" RequiredError="Il tipo è obbligatorio">
+                    @foreach (var t in _types)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_saving || _loading || _zones.Count == 0 || _types.Count == 0)">Crea</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int? DefaultZoneId { get; set; }
+
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private readonly List<Zone> _zones = new();
+    private readonly List<DeviceType> _types = new();
+
+    private bool _loading;
+    private bool _saving;
+
+    private int? _zoneId;
+    private string _name = string.Empty;
+    private int? _typeId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.IsInRole("admin"))
+            {
+                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            var zones = await Db.Zones
+                .AsNoTracking()
+                .OrderBy(z => z.Name)
+                .ToListAsync();
+
+            var types = await Db.DeviceTypes
+                .AsNoTracking()
+                .OrderBy(t => t.Name)
+                .ToListAsync();
+
+            _zones.Clear();
+            _zones.AddRange(zones);
+
+            _types.Clear();
+            _types.AddRange(types);
+
+            if (_zones.Count > 0)
+            {
+                if (DefaultZoneId is int zid && _zones.Any(z => z.Id == zid))
+                    _zoneId = zid;
+                else
+                    _zoneId = _zones[0].Id;
+            }
+
+            if (_types.Count > 0)
+                _typeId = _types[0].Id;
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante il caricamento delle zone.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading)
+            return;
+
+        _saving = true;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!authState.User.IsInRole("admin"))
+            {
+                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            if (_zoneId is not int zid)
+                return;
+
+            if (_typeId is not int typeId)
+                return;
+
+            var name = (_name ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            if (!_types.Any(t => t.Id == typeId))
+                return;
+
+            var device = new Device
+            {
+                ZoneId = zid,
+                Name = name,
+                DeviceTypeId = typeId,
+            };
+
+            Db.Devices.Add(device);
+            await Db.SaveChangesAsync();
+
+            Snackbar.Add($"Dispositivo '{device.Name}' creato.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(device.Id));
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante la creazione del dispositivo.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

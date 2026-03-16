@@ -2,14 +2,29 @@
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace Progetto_Web_2_IoT_Auth.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialNewSchema : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "device_type",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_device_type", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "users",
                 columns: table => new
@@ -74,15 +89,20 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     ZoneId = table.Column<int>(type: "INTEGER", nullable: false),
+                    DeviceTypeId = table.Column<int>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
-                    St = table.Column<int>(type: "INTEGER", nullable: false),
                     Power = table.Column<bool>(type: "INTEGER", nullable: false),
                     Level = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_device", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_device_device_type_DeviceTypeId",
+                        column: x => x.DeviceTypeId,
+                        principalTable: "device_type",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_device_zone_ZoneId",
                         column: x => x.ZoneId,
@@ -115,6 +135,17 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "device_type",
+                columns: new[] { "Id", "Name" },
+                values: new object[,]
+                {
+                    { 1, "lampada" },
+                    { 2, "presa" },
+                    { 3, "sensore" },
+                    { 4, "termostato" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "users",
                 columns: new[] { "Id", "Mail", "PasswordHash", "Role", "Username" },
                 values: new object[] { 1, "admin@example.local", "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS", "admin", "admin" });
@@ -141,9 +172,20 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 column: "DeviceId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_device_DeviceTypeId",
+                table: "device",
+                column: "DeviceTypeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_device_ZoneId",
                 table: "device",
                 column: "ZoneId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_device_type_Name",
+                table: "device_type",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_Mail",
@@ -172,6 +214,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
 
             migrationBuilder.DropTable(
                 name: "device");
+
+            migrationBuilder.DropTable(
+                name: "device_type");
 
             migrationBuilder.DropTable(
                 name: "zone");
