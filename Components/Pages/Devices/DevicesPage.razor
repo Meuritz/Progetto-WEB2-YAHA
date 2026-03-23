@@ -94,13 +94,29 @@
                 <MudTh>Nome</MudTh>
                 <MudTh>Tipo</MudTh>
                 <MudTh>Zona</MudTh>
+                <MudTh>IP</MudTh>
                 <MudTh>Power</MudTh>
                 <MudTh Align="Right">Level</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Nome">@context.Name</MudTd>
                 <MudTd DataLabel="Tipo">@context.Type</MudTd>
-                <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
+                <MudTd DataLabel="Zona">
+                    @if (_isAdmin)
+                    {
+                        <MudSelect T="int" Value="@context.ZoneId" ValueChanged="@((int v) => ChangeDeviceZoneAsync(context, v))" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            @foreach (var z in _zones)
+                            {
+                                <MudSelectItem T="int" Value="@z.Id">@z.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        @context.ZoneName
+                    }
+                </MudTd>
+                <MudTd DataLabel="IP">@context.IpAddress</MudTd>
                 <MudTd DataLabel="Power">
                     @if (context.CanOperate)
                     {
@@ -114,7 +130,10 @@
                 <MudTd DataLabel="Level" Align="Right">
                     @if (context.CanOperate)
                     {
-                        <MudNumericField T="int" Value="@context.Level" ValueChanged="@((int v) => UpdateLevelAsync(context, v))" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 110px" />
+                        <MudStack Spacing="0">
+                            <MudSlider T="int" Value="@context.Level" ValueChanged="@((int v) => UpdateLevelAsync(context, v))" Min="0" Max="100" Step="1" />
+                            <MudText Typo="Typo.caption" Align="Align.Right">@context.Level</MudText>
+                        </MudStack>
                     }
                     else
                     {
@@ -300,6 +319,7 @@
                         ZoneName = d.Zone?.Name ?? string.Empty,
                         Name = d.Name,
                         Type = d.DeviceType?.Name ?? string.Empty,
+                        IpAddress = d.IpAddress,
                         Power = d.Power,
                         Level = d.Level,
                         CanOperate = CanOperateZone(d.ZoneId)
@@ -391,6 +411,37 @@
         }
     }
 
+    private async Task ChangeDeviceZoneAsync(DeviceRow row, int newZoneId)
+    {
+        if (!_isAdmin)
+            return;
+
+        if (row.ZoneId == newZoneId)
+            return;
+
+        if (_zones.All(z => z.Id != newZoneId))
+        {
+            Snackbar.Add("Zona non valida.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
+            if (entity is null)
+                return;
+
+            entity.ZoneId = newZoneId;
+            await Db.SaveChangesAsync();
+
+            await ReloadAsync();
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante il cambio zona del dispositivo.", Severity.Error);
+        }
+    }
+
     private sealed class DeviceRow
     {
         public int Id { get; set; }
@@ -398,6 +449,7 @@
         public string ZoneName { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+        public string? IpAddress { get; set; }
         public bool Power { get; set; }
         public int Level { get; set; }
         public bool CanOperate { get; set; }

@@ -91,6 +91,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     ZoneId = table.Column<int>(type: "INTEGER", nullable: false),
                     DeviceTypeId = table.Column<int>(type: "INTEGER", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
+                    IpAddress = table.Column<string>(type: "TEXT", nullable: true),
                     Power = table.Column<bool>(type: "INTEGER", nullable: false),
                     Level = table.Column<int>(type: "INTEGER", nullable: false)
                 },
@@ -139,10 +140,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 columns: new[] { "Id", "Name" },
                 values: new object[,]
                 {
-                    { 1, "lampada" },
-                    { 2, "presa" },
-                    { 3, "sensore" },
-                    { 4, "termostato" }
+                    { 1, "light" },
+                    { 2, "sprinkler" },
+                    { 3, "termostato" }
                 });
 
             migrationBuilder.InsertData(

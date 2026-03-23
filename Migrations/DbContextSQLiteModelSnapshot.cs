@@ -124,6 +124,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     b.Property<int>("DeviceTypeId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Level")
                         .HasColumnType("INTEGER");
 
@@ -167,21 +170,16 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "lampada"
+                            Name = "light"
                         },
                         new
                         {
                             Id = 2,
-                            Name = "presa"
+                            Name = "sprinkler"
                         },
                         new
                         {
                             Id = 3,
-                            Name = "sensore"
-                        },
-                        new
-                        {
-                            Id = 4,
                             Name = "termostato"
                         });
                 });

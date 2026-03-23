@@ -68,6 +68,7 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 b.HasKey(x => x.Id);
                 b.Property(x => x.Name).IsRequired();
                 b.Property(x => x.DeviceTypeId).IsRequired();
+                b.Property(x => x.IpAddress);
 
                 b.HasOne(x => x.Zone)
                     .WithMany(z => z.Devices)
@@ -123,10 +124,9 @@ namespace Progetto_Web_2_IoT_Auth.Data
             });
 
             modelBuilder.Entity<DeviceType>().HasData(
-                new DeviceType { Id = 1, Name = "lampada" },
-                new DeviceType { Id = 2, Name = "presa" },
-                new DeviceType { Id = 3, Name = "sensore" },
-                new DeviceType { Id = 4, Name = "termostato" });
+                new DeviceType { Id = 1, Name = "light" },
+                new DeviceType { Id = 2, Name = "sprinkler" },
+                new DeviceType { Id = 3, Name = "termostato" });
         }
     }
 }

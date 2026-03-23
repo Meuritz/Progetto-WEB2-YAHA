@@ -12,6 +12,8 @@
 
         public string Name { get; set; } = string.Empty;
 
+        public string? IpAddress { get; set; }
+
         public bool Power { get; set; }
 
         public int Level { get; set; }

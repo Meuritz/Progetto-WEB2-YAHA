@@ -2,6 +2,8 @@
 @using MudBlazor
 @using Progetto_Web_2_IoT_Auth.Data
 @using Progetto_Web_2_IoT_Auth.Data.Model
+@using Progetto_Web_2_IoT_Auth.Components.Pages.Devices.Dialogs
+@using System.Net
 
 <MudDialog>
     <DialogContent>
@@ -12,30 +14,38 @@
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
             }
-            else if (_zones.Count == 0)
-            {
-                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                    Nessuna zona disponibile.
-                </MudAlert>
-            }
-            else if (_types.Count == 0)
-            {
-                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                    Nessun tipo dispositivo configurato.
-                </MudAlert>
-            }
             else
             {
-                <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_zoneId">
-                    @foreach (var z in _zones)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (_zones.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        Nessuna zona disponibile.
+                    </MudAlert>
+                }
+
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_zoneId" Style="flex:1" Disabled="@(_zones.Count == 0)">
+                        @foreach (var z in _zones)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_saving" OnClick="OpenAddZoneDialogAsync" />
+                </MudStack>
 
                 <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Il nome è obbligatorio" />
 
-                <MudSelect T="int?" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_typeId" Required="true" RequiredError="Il tipo è obbligatorio">
+                <MudTextField @bind-Value="_ipAddress" Label="IP" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+                @if (_types.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        Nessun tipo dispositivo configurato.
+                    </MudAlert>
+                }
+
+                <MudSelect T="int?" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_typeId" Required="true" RequiredError="Il tipo è obbligatorio" Disabled="@(_types.Count == 0)">
                     @foreach (var t in _types)
                     {
                         <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
@@ -59,6 +69,7 @@
     [Inject] private DbContextSQLite Db { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService Dialog { get; set; } = null!;
 
     private readonly List<Zone> _zones = new();
     private readonly List<DeviceType> _types = new();
@@ -68,6 +79,7 @@
 
     private int? _zoneId;
     private string _name = string.Empty;
+    private string _ipAddress = string.Empty;
     private int? _typeId;
 
     protected override async Task OnInitializedAsync()
@@ -120,6 +132,29 @@
         }
     }
 
+    private async Task OpenAddZoneDialogAsync()
+    {
+        var dialog = Dialog.Show<AddZoneDialog>("Aggiungi zona",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result.Canceled)
+            return;
+
+        var zones = await Db.Zones
+            .AsNoTracking()
+            .OrderBy(z => z.Name)
+            .ToListAsync();
+
+        _zones.Clear();
+        _zones.AddRange(zones);
+
+        if (result.Data is int newZoneId && _zones.Any(z => z.Id == newZoneId))
+            _zoneId = newZoneId;
+        else if (_zoneId is null && _zones.Count > 0)
+            _zoneId = _zones[0].Id;
+    }
+
     private async Task SaveAsync()
     {
         if (_saving || _loading)
@@ -143,9 +178,16 @@
                 return;
 
             var name = (_name ?? string.Empty).Trim();
+            var ip = (_ipAddress ?? string.Empty).Trim();
 
             if (string.IsNullOrWhiteSpace(name))
                 return;
+
+            if (!string.IsNullOrWhiteSpace(ip) && !IPAddress.TryParse(ip, out _))
+            {
+                Snackbar.Add("IP non valido.", Severity.Warning);
+                return;
+            }
 
             if (!_types.Any(t => t.Id == typeId))
                 return;
@@ -154,6 +196,7 @@
             {
                 ZoneId = zid,
                 Name = name,
+                IpAddress = string.IsNullOrWhiteSpace(ip) ? null : ip,
                 DeviceTypeId = typeId,
             };
 
