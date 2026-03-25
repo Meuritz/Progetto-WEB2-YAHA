@@ -12,8 +12,8 @@
 @using MudBlazor
 
 <MudPaper Class="pa-6 mt-6">
-    <MudStack Spacing="2">
-        <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
+        <MudStack Spacing="2">
+            <MudStack Row="true" justifycontent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h5">Utenti Registrati</MudText>
             <MudStack Row="true" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
@@ -114,9 +114,11 @@
             [nameof(EditUserRoleDialog.CurrentRole)] = user.Role
         };
 
-        var dialog = Dialog.Show<EditUserRoleDialog>("Cambia ruolo", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var dialog = await Dialog.ShowAsync<EditUserRoleDialog>(
+            "Cambia ruolo", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         var newRole = (result.Data as string)?.Trim().ToLowerInvariant();
@@ -148,9 +150,11 @@
             [nameof(ResetUserPasswordDialog.Username)] = user.Username
         };
 
-        var dialog = Dialog.Show<ResetUserPasswordDialog>("Reset password", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+        var dialog = await Dialog.ShowAsync<ResetUserPasswordDialog>(
+            "Reset password", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         var newPassword = result.Data as string;
@@ -180,9 +184,11 @@
             [nameof(EditUserAccessDialog.Username)] = user.Username
         };
 
-        var dialog = Dialog.Show<EditUserAccessDialog>("Gestisci accessi", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        var dialog = await Dialog.ShowAsync<EditUserAccessDialog>(
+            "Gestisci accessi", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         await ReloadAsync();

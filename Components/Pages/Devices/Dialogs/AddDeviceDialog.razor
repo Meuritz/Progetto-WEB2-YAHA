@@ -134,11 +134,11 @@
 
     private async Task OpenAddZoneDialogAsync()
     {
-        var dialog = Dialog.Show<AddZoneDialog>("Aggiungi zona",
+        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Aggiungi zona",
             options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         var zones = await Db.Zones

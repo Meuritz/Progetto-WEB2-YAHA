@@ -22,6 +22,13 @@
             Admin Only - Create a new user account
         </MudText>
 
+        @if (!string.IsNullOrWhiteSpace(_resultMessage))
+        {
+            <MudAlert Severity="_resultSeverity" Variant="Variant.Outlined" Class="mb-4">
+                @_resultMessage
+            </MudAlert>
+        }
+
         <EditForm EditContext="_editContext" OnValidSubmit="RegisterAsync">
             <DataAnnotationsValidator />
 
@@ -88,7 +95,7 @@
 
 @code {
     private RegisterViewModel _model = new();
-    private EditContext _editContext;
+    private EditContext _editContext = default!;
     private bool _showPwd;
     private bool _showConfirm;
     private bool _submitting;

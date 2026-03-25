@@ -10,7 +10,7 @@ using Progetto_Web_2_IoT_Auth.Data;
 namespace Progetto_Web_2_IoT_Auth.Migrations
 {
     [DbContext(typeof(DbContextSQLite))]
-    [Migration("20260318182441_InitialCreate")]
+    [Migration("20260324204002_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -51,6 +51,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("DarkMode")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Mail")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -81,6 +84,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         new
                         {
                             Id = 1,
+                            DarkMode = false,
                             Mail = "admin@example.local",
                             PasswordHash = "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS",
                             Role = "admin",

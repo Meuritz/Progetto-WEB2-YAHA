@@ -1,53 +1,88 @@
-using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Progetto_Web_2_IoT_Auth.Data;
 
 namespace Progetto_Web_2_IoT_Auth.Services;
 
 public sealed class ThemeService
 {
-    private const string StorageKey = "theme.dark";
-    private bool _initialized;
+    private readonly DbContextSQLite _db;
+    private readonly AuthenticationStateProvider _authStateProvider;
+
+    private int? _loadedForUserId;
 
     public bool IsDarkMode { get; private set; }
 
     public event Action? OnChange;
 
-    public async Task InitializeAsync(IJSRuntime js)
+    public ThemeService(DbContextSQLite db, AuthenticationStateProvider authStateProvider)
     {
-        if (_initialized)
+        _db = db;
+        _authStateProvider = authStateProvider;
+    }
+
+    public async Task EnsureLoadedAsync()
+    {
+        var userId = await GetCurrentUserIdAsync();
+        if (userId is null)
+        {
+            if (_loadedForUserId is not null)
+            {
+                _loadedForUserId = null;
+                IsDarkMode = false;
+                OnChange?.Invoke();
+            }
+
+            return;
+        }
+
+        if (_loadedForUserId == userId)
             return;
 
-        _initialized = true;
+        _loadedForUserId = userId;
 
-        try
-        {
-            var raw = await js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
-            if (bool.TryParse(raw, out var value))
-                IsDarkMode = value;
-        }
-        catch
-        {
-        }
+        IsDarkMode = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.DarkMode)
+            .FirstOrDefaultAsync();
 
         OnChange?.Invoke();
     }
 
-    public async Task SetDarkModeAsync(bool value, IJSRuntime js)
+    public async Task SetDarkModeAsync(bool value)
     {
         if (IsDarkMode == value)
             return;
 
         IsDarkMode = value;
 
-        try
+        var userId = await GetCurrentUserIdAsync();
+        if (userId is int uid)
         {
-            await js.InvokeVoidAsync("localStorage.setItem", StorageKey, value.ToString().ToLowerInvariant());
-        }
-        catch
-        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid);
+            if (user is not null)
+            {
+                user.DarkMode = value;
+                await _db.SaveChangesAsync();
+            }
         }
 
         OnChange?.Invoke();
     }
 
-    public Task ToggleAsync(IJSRuntime js) => SetDarkModeAsync(!IsDarkMode, js);
+    public Task ToggleAsync() => SetDarkModeAsync(!IsDarkMode);
+
+    private async Task<int?> GetCurrentUserIdAsync()
+    {
+        var authState = await _authStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user?.Identity?.IsAuthenticated != true)
+            return null;
+
+        var idRaw = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(idRaw, out var id) ? id : null;
+    }
 }

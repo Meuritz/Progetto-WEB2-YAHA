@@ -66,6 +66,12 @@
 
     protected override void OnInitialized()
     {
+        var httpContext = HttpContextAccessor.HttpContext;
+        if (httpContext is not null)
+        {
+            _antiforgeryToken = Antiforgery.GetAndStoreTokens(httpContext).RequestToken;
+        }
+
         var uri = new Uri(Navigation.Uri);
         var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
 

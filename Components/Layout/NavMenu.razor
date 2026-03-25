@@ -2,7 +2,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 @inject Progetto_Web_2_IoT_Auth.Services.ThemeService Theme
-@inject IJSRuntime JS
 @implements IDisposable
 
 <AuthorizeView>
@@ -22,10 +21,12 @@
             <MudSpacer />
             <MudNavLink Href="/logout" Icon="@Icons.Material.Filled.ExitToApp" Class="mx-2">Logout</MudNavLink>
 
-            <MudIconButton Icon="@(Theme.IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Default"
-                           Class="mx-2"
-                           OnClick="ToggleThemeAsync" />
+            <MudToggleIconButton Toggled="@Theme.IsDarkMode"
+                                 ToggledChanged="SetThemeAsync"
+                                 Icon="@Icons.Material.Filled.DarkMode"
+                                 ToggledIcon="@Icons.Material.Filled.LightMode"
+                                 Color="Color.Default"
+                                 Class="mx-2" />
         </MudPaper>
     </Authorized>
 </AuthorizeView>
@@ -36,10 +37,7 @@
         Theme.OnChange += OnThemeChanged;
     }
 
-    private async Task ToggleThemeAsync()
-    {
-        await Theme.ToggleAsync(JS);
-    }
+    private Task SetThemeAsync(bool value) => Theme.SetDarkModeAsync(value);
 
     private void OnThemeChanged()
     {

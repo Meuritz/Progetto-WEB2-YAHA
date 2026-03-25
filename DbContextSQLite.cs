@@ -29,6 +29,7 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 b.Property(x => x.Mail).IsRequired();
                 b.Property(x => x.PasswordHash).IsRequired();
                 b.Property(x => x.Role).IsRequired();
+                b.Property(x => x.DarkMode).IsRequired();
 
                 b.HasIndex(x => x.Username).IsUnique();
                 b.HasIndex(x => x.Mail).IsUnique();
@@ -120,7 +121,8 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 Username = "admin",
                 Mail = "admin@example.local",
                 PasswordHash = seededAdminHash,
-                Role = "admin"
+                Role = "admin",
+                DarkMode = false
             });
 
             modelBuilder.Entity<DeviceType>().HasData(

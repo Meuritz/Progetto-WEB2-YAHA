@@ -34,7 +34,8 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     Username = table.Column<string>(type: "TEXT", nullable: false),
                     Mail = table.Column<string>(type: "TEXT", nullable: false),
                     PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
-                    Role = table.Column<string>(type: "TEXT", nullable: false)
+                    Role = table.Column<string>(type: "TEXT", nullable: false),
+                    DarkMode = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -147,8 +148,8 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
 
             migrationBuilder.InsertData(
                 table: "users",
-                columns: new[] { "Id", "Mail", "PasswordHash", "Role", "Username" },
-                values: new object[] { 1, "admin@example.local", "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS", "admin", "admin" });
+                columns: new[] { "Id", "DarkMode", "Mail", "PasswordHash", "Role", "Username" },
+                values: new object[] { 1, false, "admin@example.local", "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS", "admin", "admin" });
 
             migrationBuilder.InsertData(
                 table: "zone",

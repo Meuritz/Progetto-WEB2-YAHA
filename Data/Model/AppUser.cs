@@ -12,5 +12,7 @@ public class AppUser
 
     public string Role { get; set; } = string.Empty;
 
+    public bool DarkMode { get; set; }
+
     public ICollection<Access> Accesses { get; set; } = new List<Access>();
 }

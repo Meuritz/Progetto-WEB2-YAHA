@@ -12,8 +12,8 @@
 <PageTitle>Dispositivi</PageTitle>
 
 <MudPaper Class="pa-6 mt-6">
-    <MudStack Spacing="2">
-        <MudStack Row="true" JustifyContent="space-between" AlignItems="AlignItems.Center">
+        <MudStack Spacing="2">
+            <MudStack Row="true" justifycontent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
             <MudText Typo="Typo.h5">Dispositivi</MudText>
                 <MudStack Row="true" Spacing="1">
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
@@ -46,7 +46,7 @@
                             <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
                         }
                     </MudSelect>
-
+                    
                     @if (_isAdmin)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_loading" OnClick="OpenAddZoneDialogAsync" />
@@ -96,7 +96,7 @@
                 <MudTh>Zona</MudTh>
                 <MudTh>IP</MudTh>
                 <MudTh>Power</MudTh>
-                <MudTh Align="Right">Level</MudTh>
+                <MudTh align="Align.Right">Level</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Nome">@context.Name</MudTd>
@@ -120,14 +120,17 @@
                 <MudTd DataLabel="Power">
                     @if (context.CanOperate)
                     {
-                        <MudSwitch T="bool" Checked="@context.Power" CheckedChanged="@((bool v) => TogglePowerAsync(context, v))" Color="Color.Primary" />
+                        <MudIconButton Icon="@(context.Power ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                       Color="@(context.Power ? Color.Success : Color.Default)"
+                                       Disabled="_loading"
+                                       OnClick="@(() => TogglePowerAsync(context, !context.Power))" />
                     }
                     else
                     {
                         <MudText Typo="Typo.body2">@(context.Power ? "on" : "off")</MudText>
                     }
                 </MudTd>
-                <MudTd DataLabel="Level" Align="Right">
+                <MudTd DataLabel="Level" align="Align.Right">
                     @if (context.CanOperate)
                     {
                         <MudStack Spacing="0">
@@ -151,6 +154,8 @@
     private const string PowerFilterOff = "off";
 
     private bool _loading;
+
+    private readonly SemaphoreSlim _dbLock = new(1, 1);
 
     private readonly List<Zone> _zones = new();
     private readonly List<DeviceRow> _devices = new();
@@ -202,11 +207,11 @@
         if (!_isAdmin)
             return;
 
-        var dialog = Dialog.Show<AddZoneDialog>("Aggiungi zona",
+        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Aggiungi zona",
             options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         if (result.Data is int newZoneId)
@@ -230,11 +235,11 @@
             [nameof(AddDeviceDialog.DefaultZoneId)] = _selectedZoneId
         };
 
-        var dialog = Dialog.Show<AddDeviceDialog>("Aggiungi dispositivo", parameters,
+        var dialog = await Dialog.ShowAsync<AddDeviceDialog>("Aggiungi dispositivo", parameters,
             new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         await ReloadAsync();
@@ -248,6 +253,7 @@
     private async Task ReloadAsync()
     {
         _loading = true;
+        await _dbLock.WaitAsync();
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -341,6 +347,7 @@
         }
         finally
         {
+            _dbLock.Release();
             _loading = false;
         }
     }
@@ -360,26 +367,40 @@
         if (!row.CanOperate)
             return;
 
+        await _dbLock.WaitAsync();
         try
         {
-            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
-            if (entity is null)
+            var zoneId = await Db.Devices
+                .AsNoTracking()
+                .Where(d => d.Id == row.Id)
+                .Select(d => (int?)d.ZoneId)
+                .FirstOrDefaultAsync();
+
+            if (zoneId is null)
                 return;
 
-            if (!CanOperateZone(entity.ZoneId))
+            if (!CanOperateZone(zoneId.Value))
             {
                 Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
                 return;
             }
 
-            entity.Power = value;
-            await Db.SaveChangesAsync();
+            var affected = await Db.Devices
+                .Where(d => d.Id == row.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(d => d.Power, value));
 
-            row.Power = value;
+            if (affected == 1)
+                row.Power = value;
+            else
+                Snackbar.Add("Aggiornamento power non riuscito.", Severity.Error);
         }
         catch
         {
             Snackbar.Add("Errore durante l'aggiornamento dello stato power.", Severity.Error);
+        }
+        finally
+        {
+            _dbLock.Release();
         }
     }
 
@@ -388,26 +409,40 @@
         if (!row.CanOperate)
             return;
 
+        await _dbLock.WaitAsync();
         try
         {
-            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
-            if (entity is null)
+            var zoneId = await Db.Devices
+                .AsNoTracking()
+                .Where(d => d.Id == row.Id)
+                .Select(d => (int?)d.ZoneId)
+                .FirstOrDefaultAsync();
+
+            if (zoneId is null)
                 return;
 
-            if (!CanOperateZone(entity.ZoneId))
+            if (!CanOperateZone(zoneId.Value))
             {
                 Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
                 return;
             }
 
-            entity.Level = value;
-            await Db.SaveChangesAsync();
+            var affected = await Db.Devices
+                .Where(d => d.Id == row.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(d => d.Level, value));
 
-            row.Level = value;
+            if (affected == 1)
+                row.Level = value;
+            else
+                Snackbar.Add("Aggiornamento livello non riuscito.", Severity.Error);
         }
         catch
         {
             Snackbar.Add("Errore durante l'aggiornamento del livello.", Severity.Error);
+        }
+        finally
+        {
+            _dbLock.Release();
         }
     }
 
@@ -425,21 +460,27 @@
             return;
         }
 
+        var reload = false;
+        await _dbLock.WaitAsync();
         try
         {
-            var entity = await Db.Devices.FirstOrDefaultAsync(d => d.Id == row.Id);
-            if (entity is null)
-                return;
+            var affected = await Db.Devices
+                .Where(d => d.Id == row.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(d => d.ZoneId, newZoneId));
 
-            entity.ZoneId = newZoneId;
-            await Db.SaveChangesAsync();
-
-            await ReloadAsync();
+            reload = affected == 1;
         }
         catch
         {
             Snackbar.Add("Errore durante il cambio zona del dispositivo.", Severity.Error);
         }
+        finally
+        {
+            _dbLock.Release();
+        }
+
+        if (reload)
+            await ReloadAsync();
     }
 
     private sealed class DeviceRow
