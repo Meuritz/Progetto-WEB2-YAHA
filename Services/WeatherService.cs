@@ -10,7 +10,9 @@ namespace Progetto_Web_2_IoT_Auth.Services
 {
     public interface IWeatherService
     {
-        Task<bool> IsRainingAsync(double latitude, double longitude);
+        Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName);
+        Task<bool> IsRainingAsync(string cityName);
+ 
     }
 
     public class WeatherService : IWeatherService
@@ -20,38 +22,72 @@ namespace Progetto_Web_2_IoT_Auth.Services
         public WeatherService(HttpClient httpClient)
         {
             _httpClient = httpClient;
-        }
+        }       
 
-        public async Task<bool> IsRainingAsync(double latitude, double longitude)
+        public async Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName)
         {
-            var request_url = $"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current_weather=true";
-
             try
             {
-                var response = await _httpClient.GetAsync(request_url);
+                var geoUrl = $"https://geocoding-api.open-meteo.com/v1/search?name={Uri.EscapeDataString(cityName)}&count=1";
+                var geoResponse = await _httpClient.GetAsync(geoUrl);
 
-                if (response.IsSuccessStatusCode)
+                if (!geoResponse.IsSuccessStatusCode) return (null, null);
+
+                var geoJson = await geoResponse.Content.ReadFromJsonAsync<JsonObject>();
+                
+                var results = geoJson?["results"]?.AsArray();
+                if (results == null || results.Count == 0)
                 {
-                    var jsonResponse = await response.Content.ReadFromJsonAsync<JsonObject>();
+                    Console.WriteLine($"City '{cityName}' not found.");
+                    return (null, null);
+                }
+
+                var latitude = results[0]?["latitude"]?.GetValue<double>();
+                var longitude = results[0]?["longitude"]?.GetValue<double>();
+
+                return (latitude, longitude);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving coordinates for {cityName}: {ex.Message}");
+                return (null, null);
+            }
+        }
+
+        public async Task<bool> IsRainingAsync(string cityName)
+        {
+            try
+            {
+                // 1. Geocoding: Get coordinates from the city name
+                var (latitude, longitude) = await GetCoordinatesAsync(cityName);
+
+                if (!latitude.HasValue || !longitude.HasValue) return false;
+
+                // 2. Weather: Get weather using coordinates
+                var weatherUrl = $"https://api.open-meteo.com/v1/forecast?latitude={latitude.Value}&longitude={longitude.Value}&current_weather=true";
+                var weatherResponse = await _httpClient.GetAsync(weatherUrl);
+
+                if (weatherResponse.IsSuccessStatusCode)
+                {
+                    var weatherJson = await weatherResponse.Content.ReadFromJsonAsync<JsonObject>();
                     
-                    if (jsonResponse != null && jsonResponse["current_weather"] != null)
+                    if (weatherJson != null && weatherJson["current_weather"] != null)
                     {
-                        var weatherCode = jsonResponse["current_weather"]?["weathercode"]?.GetValue<int>();
+                        var weatherCode = weatherJson["current_weather"]?["weathercode"]?.GetValue<int>();
 
                         if (weatherCode.HasValue)
                         {
-                            // Rain: 51-99
-                            return weatherCode.Value is (>= 51 and <= 99);
+                            // Open-Meteo codes for rain 51-99
+                            return weatherCode.Value is >= 51 and <= 99;
                         }
                     }
                 }
             }
             catch (Exception ex) 
             { 
-                Console.WriteLine($"Error while trying to fetch weather data: {ex.Message}");
+                Console.WriteLine($"Error retrieving weather for {cityName}: {ex.Message}");
             }
 
-            // Ritorniamo false in caso di errore di chiamata, JSON invalido o se non piove
             return false;
         }
     }
