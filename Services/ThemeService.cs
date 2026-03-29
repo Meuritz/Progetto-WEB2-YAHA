@@ -5,7 +5,14 @@ using Progetto_Web_2_IoT_Auth.Data;
 
 namespace Progetto_Web_2_IoT_Auth.Services;
 
-public sealed class ThemeService
+public interface IThemeService
+{
+    Task EnsureLoadedAsync();
+    Task SetDarkModeAsync(bool value);
+    Task ToggleAsync();
+}
+
+public sealed class ThemeService : IThemeService
 {
     private readonly DbContextSQLite _db;
     private readonly AuthenticationStateProvider _authStateProvider;
