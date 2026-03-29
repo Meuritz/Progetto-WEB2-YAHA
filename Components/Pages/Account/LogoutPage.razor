@@ -51,7 +51,15 @@
     {
         if (firstRender && !_done)
         {
-            await JS.InvokeVoidAsync("submitLogoutForm");
+            try
+            {
+                await JS.InvokeVoidAsync("submitLogoutForm");
+            }
+            catch (Exception ex) when (ex is TaskCanceledException || ex.GetType().Name == "JSDisconnectedException")
+            {
+                // Ignores the execption casued by submitting the form causes a navigation
+                // which disconnects the circuit and cancels ongoing JS tasks, this solution is non ideal indeed
+            }
         }
     }
 
