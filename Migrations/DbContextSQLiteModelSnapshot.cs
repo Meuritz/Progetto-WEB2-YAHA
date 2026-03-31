@@ -42,6 +42,36 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     b.ToTable("access", (string)null);
                 });
 
+            modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.AppSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("app_setting", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Key = "WeatherCity",
+                            Value = "Roma"
+                        });
+                });
+
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.AppUser", b =>
                 {
                     b.Property<int>("Id")

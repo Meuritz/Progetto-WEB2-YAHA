@@ -15,6 +15,7 @@ namespace Progetto_Web_2_IoT_Auth.Data
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceType> DeviceTypes { get; set; }
         public DbSet<Automation> Automations { get; set; }
+        public DbSet<AppSetting> AppSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -103,6 +104,14 @@ namespace Progetto_Web_2_IoT_Auth.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<AppSetting>(b =>
+            {
+                b.ToTable("app_setting");
+                b.HasKey(x => x.Id);
+                b.Property(x => x.Key).IsRequired();
+                b.HasIndex(x => x.Key).IsUnique();
+            });
+
             // Seed: a default zone + admin user
             // Must be deterministic for EF migrations: BCrypt.HashPassword uses random salts.
             // Default admin password: "admin"
@@ -129,6 +138,13 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 new DeviceType { Id = 1, Name = "light" },
                 new DeviceType { Id = 2, Name = "sprinkler" },
                 new DeviceType { Id = 3, Name = "termostato" });
+
+            modelBuilder.Entity<AppSetting>().HasData(new AppSetting
+            {
+                Id = 1,
+                Key = "WeatherCity",
+                Value = "Roma"
+            });
         }
     }
 }

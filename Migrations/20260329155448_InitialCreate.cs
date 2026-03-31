@@ -13,6 +13,20 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "app_setting",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Key = table.Column<string>(type: "TEXT", nullable: false),
+                    Value = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_app_setting", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "device_type",
                 columns: table => new
                 {
@@ -137,6 +151,11 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "app_setting",
+                columns: new[] { "Id", "Key", "Value" },
+                values: new object[] { 1, "WeatherCity", "Roma" });
+
+            migrationBuilder.InsertData(
                 table: "device_type",
                 columns: new[] { "Id", "Name" },
                 values: new object[,]
@@ -166,6 +185,12 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                 name: "IX_access_ZoneId",
                 table: "access",
                 column: "ZoneId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_app_setting_Key",
+                table: "app_setting",
+                column: "Key",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_automation_DeviceId",
@@ -206,6 +231,9 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
         {
             migrationBuilder.DropTable(
                 name: "access");
+
+            migrationBuilder.DropTable(
+                name: "app_setting");
 
             migrationBuilder.DropTable(
                 name: "automation");

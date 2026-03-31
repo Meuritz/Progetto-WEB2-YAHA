@@ -15,6 +15,7 @@ obj/
 # OS
 .DS_Store
 Thumbs.db
+.github
 
 # Local databases / SQLite
 Data/db.sqlite*

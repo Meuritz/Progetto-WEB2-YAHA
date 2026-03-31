@@ -1,0 +1,42 @@
+@page "/settings"
+@using Microsoft.AspNetCore.Authorization
+@using Progetto_Web_2_IoT_Auth.Services
+@using MudBlazor
+@attribute [Authorize(Roles = "admin")]
+@inject SettingsService SettingsService
+@inject ISnackbar Snackbar
+
+<PageTitle>Impostazioni App</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Impostazioni Applicazione</MudText>
+
+<MudCard>
+    <MudCardContent>
+        <MudTextField @bind-Value="CitySetting" Label="Città di riferimento (per Meteo)" 
+                      Variant="Variant.Outlined" Class="mb-4" />
+        
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">Salva</MudButton>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private string CitySetting { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CitySetting = await SettingsService.GetSettingAsync("WeatherCity", "Roma");
+    }
+
+    private async Task SaveSettings()
+    {
+        if (!string.IsNullOrWhiteSpace(CitySetting))
+        {
+            await SettingsService.SetSettingAsync("WeatherCity", CitySetting.Trim());
+            Snackbar.Add("Impostazioni salvate con successo.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Inserisci il nome di una città valida.", Severity.Warning);
+        }
+    }
+}

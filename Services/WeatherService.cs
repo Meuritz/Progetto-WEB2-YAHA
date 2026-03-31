@@ -11,17 +11,19 @@ namespace Progetto_Web_2_IoT_Auth.Services
     public interface IWeatherService
     {
         Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName);
-        Task<bool> IsRainingAsync(string cityName);
+        Task<bool> IsRainingAsync();
  
     }
 
     public class WeatherService : IWeatherService
     {
         private readonly HttpClient _httpClient;
+        private readonly SettingsService _settingsService;
 
-        public WeatherService(HttpClient httpClient)
+        public WeatherService(HttpClient httpClient, SettingsService settingsService)
         {
             _httpClient = httpClient;
+            _settingsService = settingsService;
         }       
 
         public async Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName)
@@ -54,8 +56,10 @@ namespace Progetto_Web_2_IoT_Auth.Services
             }
         }
 
-        public async Task<bool> IsRainingAsync(string cityName)
+        public async Task<bool> IsRainingAsync()
         {
+            var cityName = await _settingsService.GetSettingAsync("WeatherCity", "Roma");
+
             try
             {
                 // 1. Geocoding: Get coordinates from the city name
