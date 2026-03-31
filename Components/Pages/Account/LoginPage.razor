@@ -69,7 +69,7 @@
         var httpContext = HttpContextAccessor.HttpContext;
         if (httpContext is not null)
         {
-            _antiforgeryToken = Antiforgery.GetAndStoreTokens(httpContext).RequestToken;
+            _antiforgeryToken = Antiforgery.GetTokens(httpContext).RequestToken;
         }
 
         var uri = new Uri(Navigation.Uri);
