@@ -1,12 +1,217 @@
-﻿@page "/automations"
+@page "/automations"
 @using Microsoft.EntityFrameworkCore
 @using Progetto_Web_2_IoT_Auth.Data.Model
-@using Progetto_Web_2_IoT_Auth.Components.Pages.Devices.Dialogs
+@using Progetto_Web_2_IoT_Auth.Components.Pages.Automations.Dialogs
+@using Progetto_Web_2_IoT_Auth.Services
 @inject DbContextSQLite Db
-@inject AuthenticationStateProvider AuthStateProvider
+@inject UserAccessService AccessService
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 
-@code {
+@attribute [Authorize]
 
+<PageTitle>Automazioni</PageTitle>
+
+<MudPaper Class="pa-6 mt-6">
+    <MudStack Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h5">Automazioni</MudText>
+            <MudSpacer />
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
+            @if (_access?.CanOperateAny == true)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialogAsync" Disabled="_loading">
+                    Aggiungi automazione
+                </MudButton>
+            }
+        </MudStack>
+
+        <MudDivider />
+
+        @if (_loading)
+        {
+            <MudStack Class="pa-6" AlignItems="AlignItems.Center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </MudStack>
+        }
+        else if (_automations.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                Nessuna automazione configurata.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_automations" Dense="true" Hover="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Dispositivo</MudTh>
+                    <MudTh>Zona</MudTh>
+                    <MudTh>Power</MudTh>
+                    <MudTh>Livello</MudTh>
+                    <MudTh>Orario</MudTh>
+                    <MudTh>Meteo</MudTh>
+                    @if (_access?.CanOperateAny == true)
+                    {
+                        <MudTh></MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Dispositivo">@context.DeviceName</MudTd>
+                    <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
+                    <MudTd DataLabel="Power">
+                        <MudIcon Icon="@(context.Power ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                 Color="@(context.Power ? Color.Success : Color.Default)" />
+                    </MudTd>
+                    <MudTd DataLabel="Livello">@context.Level</MudTd>
+                    <MudTd DataLabel="Orario">@(string.IsNullOrWhiteSpace(context.TimeCondition) ? "-" : context.TimeCondition)</MudTd>
+                    <MudTd DataLabel="Meteo">@(string.IsNullOrWhiteSpace(context.WeatherCondition) ? "-" : context.WeatherCondition)</MudTd>
+                    @if (_access?.CanOperateAny == true)
+                    {
+                        <MudTd>
+                            @if (context.CanOperate)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => DeleteAsync(context))" Disabled="_loading" />
+                            }
+                        </MudTd>
+                    }
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    private bool _loading;
+    private UserAccessInfo _access = null!;
+
+    private readonly SemaphoreSlim _dbLock = new(1, 1);
+    private readonly List<AutomationRow> _automations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _loading = true;
+        await _dbLock.WaitAsync();
+        try
+        {
+            _access = await AccessService.GetAccessInfoAsync();
+
+            _automations.Clear();
+
+            List<int> deviceIds;
+
+            if (_access.IsAdmin)
+            {
+                deviceIds = await Db.Devices.AsNoTracking().Select(d => d.Id).ToListAsync();
+            }
+            else
+            {
+                var zoneIds = _access.AccessibleZoneIds;
+                deviceIds = zoneIds.Count > 0
+                    ? await Db.Devices.AsNoTracking()
+                        .Where(d => zoneIds.Contains(d.ZoneId))
+                        .Select(d => d.Id)
+                        .ToListAsync()
+                    : new List<int>();
+            }
+
+            if (deviceIds.Count > 0)
+            {
+                var automations = await Db.Automations
+                    .AsNoTracking()
+                    .Include(a => a.Device)
+                        .ThenInclude(d => d.Zone)
+                    .Where(a => deviceIds.Contains(a.DeviceId))
+                    .OrderBy(a => a.Device.Zone.Name)
+                    .ThenBy(a => a.Device.Name)
+                    .ToListAsync();
+
+                foreach (var a in automations)
+                {
+                    _automations.Add(new AutomationRow
+                    {
+                        Id = a.Id,
+                        ZoneId = a.Device?.ZoneId ?? 0,
+                        DeviceName = a.Device?.Name ?? string.Empty,
+                        ZoneName = a.Device?.Zone?.Name ?? string.Empty,
+                        Power = a.Power,
+                        Level = a.Level,
+                        TimeCondition = a.TimeCondition,
+                        WeatherCondition = a.WeatherCondition,
+                        CanOperate = _access.CanOperateZone(a.Device?.ZoneId ?? 0)
+                    });
+                }
+            }
+        }
+        finally
+        {
+            _dbLock.Release();
+            _loading = false;
+        }
+    }
+
+    private async Task OpenAddDialogAsync()
+    {
+        if (!_access.CanOperateAny)
+            return;
+
+        var dialog = await Dialog.ShowAsync<AddAutomationDialog>("Aggiungi automazione",
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled)
+            return;
+
+        await ReloadAsync();
+    }
+
+    private async Task DeleteAsync(AutomationRow row)
+    {
+        if (!row.CanOperate)
+            return;
+
+        await _dbLock.WaitAsync();
+        try
+        {
+            var affected = await Db.Automations
+                .Where(a => a.Id == row.Id)
+                .ExecuteDeleteAsync();
+
+            if (affected == 1)
+            {
+                _automations.Remove(row);
+                Snackbar.Add("Automazione eliminata.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Eliminazione non riuscita.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante l'eliminazione.", Severity.Error);
+        }
+        finally
+        {
+            _dbLock.Release();
+        }
+    }
+
+    private sealed class AutomationRow
+    {
+        public int Id { get; set; }
+        public int ZoneId { get; set; }
+        public string DeviceName { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+        public bool Power { get; set; }
+        public int Level { get; set; }
+        public string TimeCondition { get; set; } = string.Empty;
+        public string WeatherCondition { get; set; } = string.Empty;
+        public bool CanOperate { get; set; }
+    }
 }

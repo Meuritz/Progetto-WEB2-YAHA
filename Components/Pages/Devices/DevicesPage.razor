@@ -2,8 +2,9 @@
 @using Microsoft.EntityFrameworkCore
 @using Progetto_Web_2_IoT_Auth.Data.Model
 @using Progetto_Web_2_IoT_Auth.Components.Pages.Devices.Dialogs
+@using Progetto_Web_2_IoT_Auth.Services
 @inject DbContextSQLite Db
-@inject AuthenticationStateProvider AuthStateProvider
+@inject UserAccessService AccessService
 @inject ISnackbar Snackbar
 @inject IDialogService Dialog
 
@@ -160,7 +161,6 @@
     private readonly List<Zone> _zones = new();
     private readonly List<DeviceRow> _devices = new();
     private readonly List<string> _deviceTypes = new();
-    private readonly Dictionary<int, string> _accessLevelByZoneId = new();
 
     private string _search = string.Empty;
     private int? _selectedZoneId;
@@ -168,7 +168,7 @@
     private HashSet<string> _selectedTypes = new(StringComparer.OrdinalIgnoreCase);
 
     private bool _isAdmin;
-    private int? _userId;
+    private UserAccessInfo _access = null!;
 
     private IEnumerable<DeviceRow> FilteredDevices
     {
@@ -256,18 +256,12 @@
         await _dbLock.WaitAsync();
         try
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            _isAdmin = user.IsInRole("admin");
-
-            var idRaw = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            _userId = int.TryParse(idRaw, out var id) ? id : null;
+            _access = await AccessService.GetAccessInfoAsync();
+            _isAdmin = _access.IsAdmin;
 
             _zones.Clear();
             _devices.Clear();
             _deviceTypes.Clear();
-            _accessLevelByZoneId.Clear();
 
             List<int> zoneIds;
 
@@ -281,28 +275,20 @@
                 _zones.AddRange(zones);
                 zoneIds = zones.Select(z => z.Id).ToList();
             }
-            else if (_userId is int uid)
-            {
-                var accesses = await Db.Accesses
-                    .AsNoTracking()
-                    .Include(a => a.Zone)
-                    .Where(a => a.UserId == uid && (a.AccessLevel == "view" || a.AccessLevel == "operator"))
-                    .OrderBy(a => a.Zone.Name)
-                    .ToListAsync();
-
-                foreach (var a in accesses)
-                {
-                    if (!_accessLevelByZoneId.ContainsKey(a.ZoneId))
-                        _accessLevelByZoneId[a.ZoneId] = (a.AccessLevel ?? string.Empty).Trim().ToLowerInvariant();
-                }
-
-                var zones = accesses.Select(a => a.Zone).DistinctBy(z => z.Id).ToList();
-                _zones.AddRange(zones);
-                zoneIds = zones.Select(z => z.Id).ToList();
-            }
             else
             {
-                zoneIds = new List<int>();
+                var accessibleIds = _access.AccessibleZoneIds;
+                if (accessibleIds.Count > 0)
+                {
+                    var zones = await Db.Zones
+                        .AsNoTracking()
+                        .Where(z => accessibleIds.Contains(z.Id))
+                        .OrderBy(z => z.Name)
+                        .ToListAsync();
+
+                    _zones.AddRange(zones);
+                }
+                zoneIds = _zones.Select(z => z.Id).ToList();
             }
 
             if (zoneIds.Count > 0)
@@ -328,7 +314,7 @@
                         IpAddress = d.IpAddress,
                         Power = d.Power,
                         Level = d.Level,
-                        CanOperate = CanOperateZone(d.ZoneId)
+                        CanOperate = _access.CanOperateZone(d.ZoneId)
                     });
                 }
 
@@ -360,7 +346,7 @@
     }
 
     private bool CanOperateZone(int zoneId)
-        => _isAdmin || (_accessLevelByZoneId.TryGetValue(zoneId, out var level) && level == "operator");
+        => _access.CanOperateZone(zoneId);
 
     private async Task TogglePowerAsync(DeviceRow row, bool value)
     {

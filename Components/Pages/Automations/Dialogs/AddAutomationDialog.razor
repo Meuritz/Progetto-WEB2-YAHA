@@ -1,5 +1,186 @@
-﻿<h3>AddAutomationDialog</h3>
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+@using Progetto_Web_2_IoT_Auth.Services
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Nuova automazione</MudText>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else
+            {
+                @if (_devices.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        Nessun dispositivo disponibile.
+                    </MudAlert>
+                }
+
+                <MudSelect T="int?" Label="Dispositivo" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           @bind-Value="_deviceId" Disabled="@(_devices.Count == 0)">
+                    @foreach (var d in _devices)
+                    {
+                        <MudSelectItem T="int?" Value="@((int?)d.Id)">@d.Name (@d.ZoneName)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText>Power:</MudText>
+                    <MudSwitch @bind-Value="_power" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2">@(_power ? "ON" : "OFF")</MudText>
+                </MudStack>
+
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2">Livello: @_level</MudText>
+                    <MudSlider T="int" @bind-Value="_level" Min="0" Max="100" Step="1" Color="Color.Primary" />
+                </MudStack>
+
+                <MudTextField @bind-Value="_timeCondition" Label="Orario" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Placeholder="es. 08:00" HelperText="Lascia vuoto per ignorare l'orario" />
+
+                <MudSelect T="string" Label="Condizione meteo" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           @bind-Value="_weatherCondition">
+                    <MudSelectItem Value="@string.Empty">Qualsiasi</MudSelectItem>
+                    <MudSelectItem Value="@("rain")">Pioggia</MudSelectItem>
+                    <MudSelectItem Value="@("no_rain")">Nessuna pioggia</MudSelectItem>
+                </MudSelect>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                   Disabled="@(_saving || _loading || _devices.Count == 0 || _deviceId is null)">Crea</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private UserAccessService AccessService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private UserAccessInfo _access = null!;
+    private readonly List<DeviceItem> _devices = new();
+
+    private bool _loading;
+    private bool _saving;
+
+    private int? _deviceId;
+    private bool _power;
+    private int _level;
+    private string _timeCondition = string.Empty;
+    private string _weatherCondition = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _access = await AccessService.GetAccessInfoAsync();
+
+            if (!_access.CanOperateAny)
+            {
+                Snackbar.Add("Non hai permessi operatore su alcuna zona.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            IQueryable<Device> query = Db.Devices
+                .AsNoTracking()
+                .Include(d => d.Zone);
+
+            if (!_access.IsAdmin)
+            {
+                var opZoneIds = _access.OperatorZoneIds;
+                query = query.Where(d => opZoneIds.Contains(d.ZoneId));
+            }
+
+            var devices = await query
+                .OrderBy(d => d.Zone.Name)
+                .ThenBy(d => d.Name)
+                .ToListAsync();
+
+            _devices.Clear();
+            foreach (var d in devices)
+            {
+                _devices.Add(new DeviceItem
+                {
+                    Id = d.Id,
+                    ZoneId = d.ZoneId,
+                    Name = d.Name,
+                    ZoneName = d.Zone?.Name ?? string.Empty
+                });
+            }
+
+            if (_devices.Count > 0)
+                _deviceId = _devices[0].Id;
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante il caricamento dei dispositivi.", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _deviceId is not int deviceId)
+            return;
+
+        _saving = true;
+        try
+        {
+            var device = _devices.FirstOrDefault(d => d.Id == deviceId);
+            if (device is null || !_access.CanOperateZone(device.ZoneId))
+            {
+                Snackbar.Add("Non hai i permessi per questo dispositivo.", Severity.Warning);
+                return;
+            }
+
+            var automation = new Automation
+            {
+                DeviceId = deviceId,
+                Power = _power,
+                Level = _level,
+                TimeCondition = (_timeCondition ?? string.Empty).Trim(),
+                WeatherCondition = _weatherCondition ?? string.Empty
+            };
+
+            Db.Automations.Add(automation);
+            await Db.SaveChangesAsync();
+
+            Snackbar.Add("Automazione creata.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(automation.Id));
+        }
+        catch
+        {
+            Snackbar.Add("Errore durante la creazione dell'automazione.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private sealed class DeviceItem
+    {
+        public int Id { get; set; }
+        public int ZoneId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+    }
 }
