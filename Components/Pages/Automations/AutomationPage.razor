@@ -63,8 +63,33 @@
                                  Color="@(context.Power ? Color.Success : Color.Default)" />
                     </MudTd>
                     <MudTd DataLabel="Livello">@context.Level</MudTd>
-                    <MudTd DataLabel="Orario">@(string.IsNullOrWhiteSpace(context.TimeCondition) ? "-" : context.TimeCondition)</MudTd>
-                    <MudTd DataLabel="Meteo">@(string.IsNullOrWhiteSpace(context.WeatherCondition) ? "-" : context.WeatherCondition)</MudTd>
+                    <MudTd DataLabel="Orario">
+                        @if (string.IsNullOrWhiteSpace(context.TimeCondition))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Default">Sempre</MudText>
+                        }
+                        else
+                        {
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                <MudText Typo="Typo.body2">@context.TimeCondition</MudText>
+                            </MudStack>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Meteo">
+                        @switch (context.WeatherCondition)
+                        {
+                            case "rain":
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.WaterDrop">Pioggia</MudChip>
+                                break;
+                            case "no_rain":
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.WbSunny">No pioggia</MudChip>
+                                break;
+                            default:
+                                <MudText Typo="Typo.body2" Color="Color.Default">Qualsiasi</MudText>
+                                break;
+                        }
+                    </MudTd>
                     @if (_access?.CanOperateAny == true)
                     {
                         <MudTd>

@@ -41,15 +41,22 @@
                     <MudSlider T="int" @bind-Value="_level" Min="0" Max="100" Step="1" Color="Color.Primary" />
                 </MudStack>
 
-                <MudTextField @bind-Value="_timeCondition" Label="Orario" Variant="Variant.Outlined"
-                              Margin="Margin.Dense" Placeholder="es. 08:00" HelperText="Lascia vuoto per ignorare l'orario" />
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Condizioni</MudText>
 
-                <MudSelect T="string" Label="Condizione meteo" Variant="Variant.Outlined" Margin="Margin.Dense"
-                           @bind-Value="_weatherCondition">
-                    <MudSelectItem Value="@string.Empty">Qualsiasi</MudSelectItem>
-                    <MudSelectItem Value="@("rain")">Pioggia</MudSelectItem>
-                    <MudSelectItem Value="@("no_rain")">Nessuna pioggia</MudSelectItem>
-                </MudSelect>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudCheckBox @bind-Value="_useTime" Label="Orario" Color="Color.Primary" Dense="true" />
+                    <MudTimePicker @bind-Time="_time" Label="Ora" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Disabled="@(!_useTime)" Editable="true" AmPm="false" Style="flex:1" />
+                </MudStack>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudCheckBox @bind-Value="_useWeather" Label="Meteo" Color="Color.Primary" Dense="true" />
+                    <MudSelect T="string" Label="Condizione" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               @bind-Value="_weatherCondition" Disabled="@(!_useWeather)" Style="flex:1">
+                        <MudSelectItem Value="@("rain")">Pioggia</MudSelectItem>
+                        <MudSelectItem Value="@("no_rain")">Nessuna pioggia</MudSelectItem>
+                    </MudSelect>
+                </MudStack>
             }
         </MudStack>
     </DialogContent>
@@ -77,8 +84,12 @@
     private int? _deviceId;
     private bool _power;
     private int _level;
-    private string _timeCondition = string.Empty;
-    private string _weatherCondition = string.Empty;
+
+    private bool _useTime;
+    private TimeSpan? _time = new TimeSpan(8, 0, 0);
+
+    private bool _useWeather;
+    private string _weatherCondition = "rain";
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,13 +160,21 @@
                 return;
             }
 
+            var timeCondition = _useTime && _time.HasValue
+                ? _time.Value.ToString(@"hh\:mm")
+                : string.Empty;
+
+            var weatherCondition = _useWeather
+                ? _weatherCondition ?? string.Empty
+                : string.Empty;
+
             var automation = new Automation
             {
                 DeviceId = deviceId,
                 Power = _power,
                 Level = _level,
-                TimeCondition = (_timeCondition ?? string.Empty).Trim(),
-                WeatherCondition = _weatherCondition ?? string.Empty
+                TimeCondition = timeCondition,
+                WeatherCondition = weatherCondition
             };
 
             Db.Automations.Add(automation);
