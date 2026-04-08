@@ -1,18 +1,23 @@
-﻿using Microsoft.AspNetCore.Components;
-using System.Collections.Generic;
-using System.Net.Http;
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using System;
 
 namespace Progetto_Web_2_IoT_Auth.Services
 {
+    public class WeatherInfo
+    {
+        public string City { get; set; } = "";
+        public double? Temperature { get; set; }
+        public int WeatherCode { get; set; }
+        public bool IsRaining { get; set; }
+        public string Description { get; set; } = "";
+    }
+
     public interface IWeatherService
     {
         Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName);
         Task<bool> IsRainingAsync();
- 
+        Task<WeatherInfo> GetCurrentWeatherAsync();
     }
 
     public class WeatherService : IWeatherService
@@ -24,7 +29,7 @@ namespace Progetto_Web_2_IoT_Auth.Services
         {
             _httpClient = httpClient;
             _settingsService = settingsService;
-        }       
+        }
 
         public async Task<(double? Latitude, double? Longitude)> GetCoordinatesAsync(string cityName)
         {
@@ -36,7 +41,7 @@ namespace Progetto_Web_2_IoT_Auth.Services
                 if (!geoResponse.IsSuccessStatusCode) return (null, null);
 
                 var geoJson = await geoResponse.Content.ReadFromJsonAsync<JsonObject>();
-                
+
                 var results = geoJson?["results"]?.AsArray();
                 if (results == null || results.Count == 0)
                 {
@@ -58,41 +63,62 @@ namespace Progetto_Web_2_IoT_Auth.Services
 
         public async Task<bool> IsRainingAsync()
         {
-            var cityName = await _settingsService.GetSettingAsync("WeatherCity", "Roma");
+            var weather = await GetCurrentWeatherAsync();
+            return weather.IsRaining;
+        }
 
-            try
+        public async Task<WeatherInfo> GetCurrentWeatherAsync()
+        {
+            var city = await _settingsService.GetSettingAsync("WeatherCity", "Roma");
+            var info = new WeatherInfo { City = city };
+
+            var (lat, lon) = await GetCoordinatesAsync(city);
+            if (!lat.HasValue || !lon.HasValue)
             {
-                // 1. Geocoding: Get coordinates from the city name
-                var (latitude, longitude) = await GetCoordinatesAsync(cityName);
-
-                if (!latitude.HasValue || !longitude.HasValue) return false;
-
-                // 2. Weather: Get weather using coordinates
-                var weatherUrl = $"https://api.open-meteo.com/v1/forecast?latitude={latitude.Value}&longitude={longitude.Value}&current_weather=true";
-                var weatherResponse = await _httpClient.GetAsync(weatherUrl);
-
-                if (weatherResponse.IsSuccessStatusCode)
-                {
-                    var weatherJson = await weatherResponse.Content.ReadFromJsonAsync<JsonObject>();
-                    
-                    if (weatherJson != null && weatherJson["current_weather"] != null)
-                    {
-                        var weatherCode = weatherJson["current_weather"]?["weathercode"]?.GetValue<int>();
-
-                        if (weatherCode.HasValue)
-                        {
-                            // Open-Meteo codes for rain 51-99
-                            return weatherCode.Value is >= 51 and <= 99;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex) 
-            { 
-                Console.WriteLine($"Error retrieving weather for {cityName}: {ex.Message}");
+                info.Description = "Location not found";
+                return info;
             }
 
-            return false;
+            var url = string.Create(CultureInfo.InvariantCulture, $"https://api.open-meteo.com/v1/forecast?latitude={lat.Value}&longitude={lon.Value}&current=temperature_2m,weather_code");
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                info.Description = "Weather unavailable";
+                return info;
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<JsonObject>();
+            var current = json?["current"];
+
+            if (current is null)
+            {
+                info.Description = "Weather unavailable";
+                return info;
+            }
+
+            info.Temperature = current["temperature_2m"]?.GetValue<double>();
+            info.WeatherCode = current["weather_code"]?.GetValue<int>() ?? 0;
+            info.IsRaining = info.WeatherCode is >= 51 and <= 99;
+
+            info.Description = info.WeatherCode switch
+            {
+                0 => "Clear sky",
+                1 or 2 => "Partly cloudy",
+                3 => "Overcast",
+                >= 45 and <= 48 => "Fog",
+                >= 51 and <= 55 => "Drizzle",
+                >= 56 and <= 57 => "Freezing drizzle",
+                >= 61 and <= 65 => "Rain",
+                >= 66 and <= 67 => "Freezing rain",
+                >= 71 and <= 77 => "Snow",
+                >= 80 and <= 82 => "Rain showers",
+                >= 85 and <= 86 => "Snow showers",
+                >= 95 and <= 99 => "Thunderstorm",
+                _ => "Variable conditions"
+            };
+
+            return info;
         }
     }
 }
