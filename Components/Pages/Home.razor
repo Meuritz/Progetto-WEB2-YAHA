@@ -1,29 +1,561 @@
-﻿@page "/"
+@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Progetto_Web_2_IoT_Auth.Data.Model
+@using Progetto_Web_2_IoT_Auth.Services
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject DbContextSQLite Db
+@inject UserAccessService AccessService
+@inject IWeatherService WeatherService
+@inject ISnackbar Snackbar
 
 @attribute [Authorize]
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard</PageTitle>
 
-<AuthorizeView>
-    <Authorized>
-        <h1>Hello, world!</h1>
-        Welcome to your new app.
-    </Authorized>
-    <NotAuthorized>
-      
-    </NotAuthorized>
-</AuthorizeView>
+@if (_loading)
+{
+    <MudStack Class="pa-12" AlignItems="AlignItems.Center">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </MudStack>
+}
+else
+{
+    @* ── Weather banner ── *@
+    <MudPaper Class="pa-4 mt-4" Elevation="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+            <MudIcon Icon="@_weatherIcon" Color="@_weatherColor" Size="Size.Large" />
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6">@_weatherCity</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Default">
+                    @_weatherDescription &mdash; @DateTime.Now.ToString("dddd, MMMM dd HH:mm")
+                </MudText>
+            </MudStack>
+            <MudSpacer />
+            @if (_weatherTemp is not null)
+            {
+                <MudText Typo="Typo.h4" Color="Color.Primary">@_weatherTemp&deg;C</MudText>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @* ── Summary cards ── *@
+    <MudGrid Class="mt-4" Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Primary" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" />
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h4">@_totalZones</MudText>
+                        <MudText Typo="Typo.body2">Zones</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Info" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.Devices" />
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h4">@_totalDevices</MudText>
+                        <MudText Typo="Typo.body2">Devices</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Success" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew" />
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h4">@_devicesOn</MudText>
+                        <MudText Typo="Typo.body2">On</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="Color.Warning" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.Alarm" />
+                    </MudAvatar>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h4">@_totalAutomations</MudText>
+                        <MudText Typo="Typo.body2">Automations</MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Devices by type (donut-style breakdown) + Quick toggle ── *@
+    <MudGrid Class="mt-4" Spacing="3">
+        @* Left: device type breakdown *@
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%">
+                <MudText Typo="Typo.h6" Class="mb-3">Devices by type</MudText>
+                @if (_devicesByType.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">No devices.</MudText>
+                }
+                else
+                {
+                    @foreach (var entry in _devicesByType)
+                    {
+                        var pct = _totalDevices > 0 ? (int)Math.Round(100.0 * entry.Total / _totalDevices) : 0;
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                            <MudIcon Icon="@GetDeviceTypeIcon(entry.Type)" Size="Size.Small" Color="@GetDeviceTypeColor(entry.Type)" />
+                            <MudText Typo="Typo.body2" Style="min-width:90px">@entry.Type</MudText>
+                            <MudProgressLinear Color="@GetDeviceTypeColor(entry.Type)" Value="@pct" Class="flex-grow-1" Rounded="true" Size="Size.Medium" />
+                            <MudText Typo="Typo.caption" Style="min-width:50px; text-align:right">@entry.On/@entry.Total</MudText>
+                        </MudStack>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* Right: zones overview *@
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="2" Style="height:100%">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Zones</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/devices" StartIcon="@Icons.Material.Filled.ArrowForward" Size="Size.Small">
+                        All devices
+                    </MudButton>
+                </MudStack>
+
+                @if (_zoneSummaries.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Default">No accessible zones.</MudText>
+                }
+                else
+                {
+                    <MudGrid Spacing="2">
+                        @foreach (var zone in _zoneSummaries)
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudCard Elevation="0" Outlined="true">
+                                    <MudCardContent>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Size="Size.Small" Color="Color.Primary" />
+                                            <MudText Typo="Typo.subtitle1"><b>@zone.Name</b></MudText>
+                                            <MudSpacer />
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@(zone.AllOff ? Color.Default : Color.Success)"
+                                                     Variant="Variant.Outlined">
+                                                @zone.DevicesOn/@zone.DevicesTotal on
+                                            </MudChip>
+                                        </MudStack>
+
+                                        @foreach (var dev in zone.Devices)
+                                        {
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="ml-2">
+                                                <MudIcon Icon="@GetDeviceTypeIcon(dev.TypeName)"
+                                                         Size="Size.Small"
+                                                         Color="@(dev.Power ? Color.Success : Color.Default)" />
+                                                <MudText Typo="Typo.body2" Style="flex:1">@dev.Name</MudText>
+
+                                                @if (dev.CanOperate)
+                                                {
+                                                    <MudToggleIconButton Toggled="@dev.Power"
+                                                                         ToggledChanged="@(v => QuickToggleAsync(dev, v))"
+                                                                         Icon="@Icons.Material.Filled.ToggleOff"
+                                                                         ToggledIcon="@Icons.Material.Filled.ToggleOn"
+                                                                         Color="Color.Default"
+                                                                         ToggledColor="Color.Success"
+                                                                         Size="Size.Small" />
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="@(dev.Power ? Color.Success : Color.Default)">
+                                                        @(dev.Power ? "ON" : "OFF")
+                                                    </MudText>
+                                                }
+
+                                                @if (dev.Power)
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Default" Style="min-width:30px; text-align:right">
+                                                        @dev.Level%
+                                                    </MudText>
+                                                }
+                                            </MudStack>
+                                        }
+
+                                        @if (zone.AutomationCount > 0)
+                                        {
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-2 ml-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Alarm" Size="Size.Small" Color="Color.Warning" />
+                                                <MudText Typo="Typo.caption">@zone.AutomationCount automation@(zone.AutomationCount == 1 ? "" : "s")</MudText>
+                                            </MudStack>
+                                        }
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Upcoming automations ── *@
+    @if (_upcomingAutomations.Count > 0)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.h6">Upcoming automations</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/automations" StartIcon="@Icons.Material.Filled.ArrowForward" Size="Size.Small">
+                    All automations
+                </MudButton>
+            </MudStack>
+
+            <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th>Schedule</th>
+                        <th>Device</th>
+                        <th>Zone</th>
+                        <th>Action</th>
+                        <th>Weather</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _upcomingAutomations)
+                    {
+                        <tr>
+                            <td>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(a.Time) ? "Always" : a.Time)</MudText>
+                                </MudStack>
+                            </td>
+                            <td>@a.DeviceName</td>
+                            <td>@a.ZoneName</td>
+                            <td>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@(a.Power ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                             Color="@(a.Power ? Color.Success : Color.Default)" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">Lv @a.Level</MudText>
+                                </MudStack>
+                            </td>
+                            <td>
+                                @switch (a.Weather)
+                                {
+                                    case "rain":
+                                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.WaterDrop">Rain</MudChip>
+                                        break;
+                                    case "no_rain":
+                                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.WbSunny">No rain</MudChip>
+                                        break;
+                                    default:
+                                        <MudText Typo="Typo.body2" Color="Color.Default">--</MudText>
+                                        break;
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    }
+}
 
 @code {
+    private bool _loading = true;
+
+    // weather
+    private string _weatherCity = "";
+    private string _weatherDescription = "Loading...";
+    private string _weatherIcon = Icons.Material.Filled.Cloud;
+    private Color _weatherColor = Color.Default;
+    private double? _weatherTemp;
+
+    // stats
+    private int _totalZones;
+    private int _totalDevices;
+    private int _devicesOn;
+    private int _totalAutomations;
+
+    // breakdowns
+    private readonly List<DeviceTypeStat> _devicesByType = new();
+    private readonly List<ZoneSummary> _zoneSummaries = new();
+    private readonly List<UpcomingAutomation> _upcomingAutomations = new();
+
     protected override async Task OnInitializedAsync()
     {
         var auth = await AuthStateProvider.GetAuthenticationStateAsync();
         if (auth.User.Identity?.IsAuthenticated == false)
         {
             Navigation.NavigateTo("/login");
+            return;
         }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        _loading = true;
+
+        try
+        {
+            var access = await AccessService.GetAccessInfoAsync();
+
+            // ── Determine accessible zone IDs ──
+            List<int> zoneIds;
+            List<Zone> zones;
+
+            if (access.IsAdmin)
+            {
+                zones = await Db.Zones.AsNoTracking().OrderBy(z => z.Name).ToListAsync();
+                zoneIds = zones.Select(z => z.Id).ToList();
+            }
+            else
+            {
+                var ids = access.AccessibleZoneIds;
+                zones = ids.Count > 0
+                    ? await Db.Zones.AsNoTracking().Where(z => ids.Contains(z.Id)).OrderBy(z => z.Name).ToListAsync()
+                    : new List<Zone>();
+                zoneIds = zones.Select(z => z.Id).ToList();
+            }
+
+            _totalZones = zones.Count;
+
+            // ── Devices ──
+            var devices = zoneIds.Count > 0
+                ? await Db.Devices.AsNoTracking()
+                    .Include(d => d.DeviceType)
+                    .Include(d => d.Zone)
+                    .Where(d => zoneIds.Contains(d.ZoneId))
+                    .OrderBy(d => d.Zone.Name).ThenBy(d => d.Name)
+                    .ToListAsync()
+                : new List<Device>();
+
+            _totalDevices = devices.Count;
+            _devicesOn = devices.Count(d => d.Power);
+
+            // by type
+            _devicesByType.Clear();
+            foreach (var g in devices.GroupBy(d => d.DeviceType?.Name ?? "altro").OrderBy(g => g.Key))
+            {
+                _devicesByType.Add(new DeviceTypeStat
+                {
+                    Type = g.Key,
+                    Total = g.Count(),
+                    On = g.Count(d => d.Power)
+                });
+            }
+
+            // ── Zone summaries ──
+            var automations = zoneIds.Count > 0
+                ? await Db.Automations.AsNoTracking()
+                    .Include(a => a.Device)
+                    .Where(a => zoneIds.Contains(a.Device.ZoneId))
+                    .ToListAsync()
+                : new List<Automation>();
+
+            _totalAutomations = automations.Count;
+
+            _zoneSummaries.Clear();
+            foreach (var zone in zones)
+            {
+                var zoneDevices = devices.Where(d => d.ZoneId == zone.Id).ToList();
+                var zoneAutos = automations.Count(a => a.Device.ZoneId == zone.Id);
+
+                _zoneSummaries.Add(new ZoneSummary
+                {
+                    Name = zone.Name,
+                    DevicesTotal = zoneDevices.Count,
+                    DevicesOn = zoneDevices.Count(d => d.Power),
+                    AutomationCount = zoneAutos,
+                    Devices = zoneDevices.Select(d => new ZoneDeviceRow
+                    {
+                        Id = d.Id,
+                        Name = d.Name,
+                        TypeName = d.DeviceType?.Name ?? "",
+                        Power = d.Power,
+                        Level = d.Level,
+                        CanOperate = access.CanOperateZone(d.ZoneId)
+                    }).ToList()
+                });
+            }
+
+            // ── Upcoming automations (time-based, sorted by next occurrence) ──
+            var now = DateTime.Now.ToString("HH:mm");
+            _upcomingAutomations.Clear();
+
+            var sorted = automations
+                .Where(a => !string.IsNullOrWhiteSpace(a.TimeCondition))
+                .OrderBy(a =>
+                {
+                    // sort: future today first, then tomorrow's
+                    var t = a.TimeCondition.Trim();
+                    return string.Compare(t, now, StringComparison.Ordinal) > 0 ? 0 : 1;
+                })
+                .ThenBy(a => a.TimeCondition.Trim())
+                .Take(6);
+
+            foreach (var a in sorted)
+            {
+                _upcomingAutomations.Add(new UpcomingAutomation
+                {
+                    Time = a.TimeCondition,
+                    DeviceName = a.Device?.Name ?? "",
+                    ZoneName = devices.FirstOrDefault(d => d.Id == a.DeviceId)?.Zone?.Name ?? "",
+                    Power = a.Power,
+                    Level = a.Level,
+                    Weather = a.WeatherCondition
+                });
+            }
+
+            // also show always-active (no time condition) automations
+            var alwaysOn = automations
+                .Where(a => string.IsNullOrWhiteSpace(a.TimeCondition))
+                .Take(Math.Max(0, 6 - _upcomingAutomations.Count));
+
+            foreach (var a in alwaysOn)
+            {
+                _upcomingAutomations.Add(new UpcomingAutomation
+                {
+                    Time = "",
+                    DeviceName = a.Device?.Name ?? "",
+                    ZoneName = devices.FirstOrDefault(d => d.Id == a.DeviceId)?.Zone?.Name ?? "",
+                    Power = a.Power,
+                    Level = a.Level,
+                    Weather = a.WeatherCondition
+                });
+            }
+
+            // ── Weather ──
+            try
+            {
+                var weather = await WeatherService.GetCurrentWeatherAsync();
+                _weatherCity = weather.City;
+                _weatherTemp = weather.Temperature;
+                _weatherDescription = weather.Description;
+                (_weatherIcon, _weatherColor) = WeatherCodeToIcon(weather.WeatherCode);
+            }
+            catch
+            {
+                _weatherDescription = "Weather unavailable";
+                _weatherIcon = Icons.Material.Filled.CloudOff;
+                _weatherColor = Color.Default;
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task QuickToggleAsync(ZoneDeviceRow dev, bool value)
+    {
+        try
+        {
+            var affected = await Db.Devices
+                .Where(d => d.Id == dev.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Power, value));
+
+            if (affected == 1)
+            {
+                dev.Power = value;
+
+                // update summary counts
+                var zone = _zoneSummaries.FirstOrDefault(z => z.Devices.Any(d => d.Id == dev.Id));
+                if (zone is not null)
+                    zone.DevicesOn = zone.Devices.Count(d => d.Power);
+
+                _devicesOn += value ? 1 : -1;
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error updating device.", Severity.Error);
+        }
+    }
+
+    private static string GetDeviceTypeIcon(string type) => type.ToLowerInvariant() switch
+    {
+        "light" => Icons.Material.Filled.Lightbulb,
+        "sprinkler" => Icons.Material.Filled.Grass,
+        "thermostat" => Icons.Material.Filled.Thermostat,
+        _ => Icons.Material.Filled.DevicesOther
+    };
+
+    private static Color GetDeviceTypeColor(string type) => type.ToLowerInvariant() switch
+    {
+        "light" => Color.Warning,
+        "sprinkler" => Color.Info,
+        "thermostat" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static (string Icon, Color Color) WeatherCodeToIcon(int code) => code switch
+    {
+        0 => (Icons.Material.Filled.WbSunny, Color.Warning),
+        1 or 2 => (Icons.Material.Filled.WbCloudy, Color.Info),
+        3 => (Icons.Material.Filled.Cloud, Color.Default),
+        >= 45 and <= 48 => (Icons.Material.Filled.Cloud, Color.Default),
+        >= 51 and <= 55 => (Icons.Material.Filled.Grain, Color.Info),
+        >= 56 and <= 57 => (Icons.Material.Filled.AcUnit, Color.Info),
+        >= 61 and <= 65 => (Icons.Material.Filled.WaterDrop, Color.Info),
+        >= 66 and <= 67 => (Icons.Material.Filled.AcUnit, Color.Info),
+        >= 71 and <= 77 => (Icons.Material.Filled.AcUnit, Color.Secondary),
+        >= 80 and <= 82 => (Icons.Material.Filled.Thunderstorm, Color.Info),
+        >= 85 and <= 86 => (Icons.Material.Filled.AcUnit, Color.Secondary),
+        >= 95 and <= 99 => (Icons.Material.Filled.Thunderstorm, Color.Error),
+        _ => (Icons.Material.Filled.Cloud, Color.Default)
+    };
+
+    // ── View models ──
+
+    private sealed class DeviceTypeStat
+    {
+        public string Type { get; set; } = "";
+        public int Total { get; set; }
+        public int On { get; set; }
+    }
+
+    private sealed class ZoneSummary
+    {
+        public string Name { get; set; } = "";
+        public int DevicesTotal { get; set; }
+        public int DevicesOn { get; set; }
+        public int AutomationCount { get; set; }
+        public bool AllOff => DevicesOn == 0;
+        public List<ZoneDeviceRow> Devices { get; set; } = new();
+    }
+
+    private sealed class ZoneDeviceRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string TypeName { get; set; } = "";
+        public bool Power { get; set; }
+        public int Level { get; set; }
+        public bool CanOperate { get; set; }
+    }
+
+    private sealed class UpcomingAutomation
+    {
+        public string Time { get; set; } = "";
+        public string DeviceName { get; set; } = "";
+        public string ZoneName { get; set; } = "";
+        public bool Power { get; set; }
+        public int Level { get; set; }
+        public string Weather { get; set; } = "";
     }
 }
