@@ -6,20 +6,20 @@
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Gestisci accessi</MudText>
+            <MudText Typo="Typo.h6">Manage access</MudText>
 
-            <MudText Typo="Typo.body2">Utente: <b>@Username</b></MudText>
+            <MudText Typo="Typo.body2">User: <b>@Username</b></MudText>
 
             <MudTable Items="_rows" Dense="true" Hover="true" Bordered="true" Striped="true">
                 <HeaderContent>
-                    <MudTh>Zona</MudTh>
+                    <MudTh>Zone</MudTh>
                     <MudTh>Access Level</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
+                    <MudTd DataLabel="Zone">@context.ZoneName</MudTd>
                     <MudTd DataLabel="Access Level">
                         <MudSelect T="string" @bind-Value="context.AccessLevel" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            <MudSelectItem Value="@string.Empty">(nessuno)</MudSelectItem>
+                            <MudSelectItem Value="@string.Empty">(none)</MudSelectItem>
                             <MudSelectItem Value="@("view")">view</MudSelectItem>
                             <MudSelectItem Value="@("operator")">operator</MudSelectItem>
                         </MudSelect>
@@ -29,8 +29,8 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Salva</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save</MudButton>
     </DialogActions>
 </MudDialog>
 

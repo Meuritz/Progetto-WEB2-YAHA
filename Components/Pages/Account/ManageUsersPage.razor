@@ -14,17 +14,17 @@
 <MudPaper Class="pa-6 mt-6">
         <MudStack Spacing="2">
             <MudStack Row="true" justifycontent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">Utenti Registrati</MudText>
+            <MudText Typo="Typo.h5">Registered Users</MudText>
             <MudStack Row="true" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="GoToRegister">
-                    Aggiungi Utente
+                    Add User
                 </MudButton>
             </MudStack>
         </MudStack>
 
         <MudTextField @bind-Value="_search"
-                      Placeholder="Cerca per username o email..."
+                      Placeholder="Search by username or email..."
                       Variant="Variant.Outlined"
                       Immediate="true"
                       Adornment="Adornment.Start"
@@ -35,21 +35,21 @@
         <HeaderContent>
             <MudTh>Username</MudTh>
             <MudTh>Email</MudTh>
-            <MudTh>Ruolo</MudTh>
-            <MudTh>Gestione</MudTh>
+            <MudTh>Role</MudTh>
+            <MudTh>Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Username">@context.Username</MudTd>
             <MudTd DataLabel="Email">@context.Mail</MudTd>
-            <MudTd DataLabel="Ruolo">@context.Role</MudTd>
+            <MudTd DataLabel="Role">@context.Role</MudTd>
             <MudTd>
                 <MudStack Row="true" Spacing="1">
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick="@(() => ChangeRoleAsync(context))">
-                        Ruolo
+                        Role
                     </MudButton>
 
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VpnKey" Disabled="@(string.Equals(context.Role, "admin", StringComparison.OrdinalIgnoreCase))" OnClick="@(() => EditAccessAsync(context))">
-                        Accessi
+                        Access
                     </MudButton>
 
                     <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Password" OnClick="@(() => ResetPasswordAsync(context))">
@@ -61,7 +61,7 @@
                                StartIcon="@Icons.Material.Filled.Delete"
                                Disabled="@(context.Id == _currentUserId)"
                                OnClick="@(() => ConfirmDeleteUserAsync(context))">
-                        Elimina
+                        Delete
                     </MudButton>
                 </MudStack>
             </MudTd>
@@ -115,7 +115,7 @@
         };
 
         var dialog = await Dialog.ShowAsync<EditUserRoleDialog>(
-            "Cambia ruolo", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+            "Change role", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         var result = await dialog.Result;
         if (result is null || result.Canceled)
@@ -140,7 +140,7 @@
 
         await Db.SaveChangesAsync();
         user.Role = newRole;
-        Snackbar.Add($"Ruolo aggiornato per {user.Username}", Severity.Success);
+        Snackbar.Add($"Role updated for {user.Username}", Severity.Success);
     }
 
     private async Task ResetPasswordAsync(AppUser user)
@@ -167,14 +167,14 @@
 
         entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await Db.SaveChangesAsync();
-        Snackbar.Add($"Password aggiornata per {user.Username}", Severity.Success);
+        Snackbar.Add($"Password updated for {user.Username}", Severity.Success);
     }
 
     private async Task EditAccessAsync(AppUser user)
     {
         if (string.Equals(user.Role, "admin", StringComparison.OrdinalIgnoreCase))
         {
-            Snackbar.Add("Gli admin hanno accesso a tutte le zone: non è necessario impostare accessi.", Severity.Info);
+            Snackbar.Add("Admins have access to all zones: no need to set access.", Severity.Info);
             return;
         }
 
@@ -185,29 +185,29 @@
         };
 
         var dialog = await Dialog.ShowAsync<EditUserAccessDialog>(
-            "Gestisci accessi", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+            "Manage access", parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
         if (result is null || result.Canceled)
             return;
 
         await ReloadAsync();
-        Snackbar.Add($"Accessi aggiornati per {user.Username}", Severity.Success);
+        Snackbar.Add($"Access updated for {user.Username}", Severity.Success);
     }
 
     private async Task ConfirmDeleteUserAsync(AppUser user)
     {
         if (user.Id == _currentUserId)
         {
-            Snackbar.Add("Non puoi eliminare il tuo account mentre sei loggato.", Severity.Warning);
+            Snackbar.Add("You cannot delete your own account while logged in.", Severity.Warning);
             return;
         }
 
         var result = await Dialog.ShowMessageBox(
-            "Conferma eliminazione",
-            $"Sei sicuro di voler eliminare l'utente {user.Username}?",
-            yesText: "Elimina",
-            cancelText: "Annulla",
+            "Confirm deletion",
+            $"Are you sure you want to delete user {user.Username}?",
+            yesText: "Delete",
+            cancelText: "Cancel",
             options: new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         if (result == true)
@@ -219,7 +219,7 @@
                 await Db.SaveChangesAsync();
                 _users.RemoveAll(u => u.Id == userEntity.Id);
                 StateHasChanged();
-                Snackbar.Add($"Utente {user.Username} eliminato.", Severity.Success);
+                Snackbar.Add($"User {user.Username} deleted.", Severity.Success);
             }
         }
     }

@@ -6,16 +6,16 @@
 @inject SettingsService SettingsService
 @inject ISnackbar Snackbar
 
-<PageTitle>Impostazioni App</PageTitle>
+<PageTitle>App Settings</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Impostazioni Applicazione</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Application Settings</MudText>
 
 <MudCard>
     <MudCardContent>
-        <MudTextField @bind-Value="CitySetting" Label="Città di riferimento (per Meteo)" 
+        <MudTextField @bind-Value="CitySetting" Label="Reference city (for Weather)"
                       Variant="Variant.Outlined" Class="mb-4" />
-        
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">Salva</MudButton>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettings">Save</MudButton>
     </MudCardContent>
 </MudCard>
 
@@ -32,11 +32,11 @@
         if (!string.IsNullOrWhiteSpace(CitySetting))
         {
             await SettingsService.SetSettingAsync("WeatherCity", CitySetting.Trim());
-            Snackbar.Add("Impostazioni salvate con successo.", Severity.Success);
+            Snackbar.Add("Settings saved successfully.", Severity.Success);
         }
         else
         {
-            Snackbar.Add("Inserisci il nome di una città valida.", Severity.Warning);
+            Snackbar.Add("Please enter a valid city name.", Severity.Warning);
         }
     }
 }

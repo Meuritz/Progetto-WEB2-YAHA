@@ -112,32 +112,69 @@ namespace Progetto_Web_2_IoT_Auth.Data
                 b.HasIndex(x => x.Key).IsUnique();
             });
 
-            // Seed: a default zone + admin user
-            // Must be deterministic for EF migrations: BCrypt.HashPassword uses random salts.
             // Default admin password: "admin"
             const string seededAdminHash = "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS";
+            // Default user password: "user"
+            const string seededUserHash = "$2a$12$vXc041cxsHJ7zMmuMHxjl.JpanScQdMOicmmzD74UErojYRCcHaoi";
 
-            modelBuilder.Entity<Zone>().HasData(new Zone
-            {
-                Id = 1,
-                Name = "default",
-                Type = "default"
-            });
+            // --- Zones ---
+            modelBuilder.Entity<Zone>().HasData(
+                new Zone { Id = 1, Name = "default",     Type = "default"   },
+                new Zone { Id = 2, Name = "Living Room", Type = "indoor"    },
+                new Zone { Id = 3, Name = "Garden",      Type = "outdoor"   },
+                new Zone { Id = 4, Name = "Bedroom",     Type = "indoor"    },
+                new Zone { Id = 5, Name = "Garage",      Type = "outdoor"   }
+            );
 
-            modelBuilder.Entity<AppUser>().HasData(new AppUser
-            {
-                Id = 1,
-                Username = "admin",
-                Mail = "admin@example.local",
-                PasswordHash = seededAdminHash,
-                Role = "admin",
-                DarkMode = false
-            });
+            // --- Users ---
+            modelBuilder.Entity<AppUser>().HasData(
+                new AppUser { Id = 1, Username = "admin",   Mail = "admin@example.local",   PasswordHash = seededAdminHash, Role = "admin", DarkMode = false },
+                new AppUser { Id = 2, Username = "alice",   Mail = "alice@example.local",   PasswordHash = seededUserHash,  Role = "user",  DarkMode = false },
+                new AppUser { Id = 3, Username = "bob",     Mail = "bob@example.local",     PasswordHash = seededUserHash,  Role = "user",  DarkMode = true  },
+                new AppUser { Id = 4, Username = "charlie", Mail = "charlie@example.local", PasswordHash = seededUserHash,  Role = "user",  DarkMode = false }
+            );
 
+            // --- Device types ---
             modelBuilder.Entity<DeviceType>().HasData(
-                new DeviceType { Id = 1, Name = "light" },
-                new DeviceType { Id = 2, Name = "sprinkler" },
-                new DeviceType { Id = 3, Name = "termostato" });
+                new DeviceType { Id = 1, Name = "light"      },
+                new DeviceType { Id = 2, Name = "sprinkler"  },
+                new DeviceType { Id = 3, Name = "thermostat" }
+            );
+
+            // --- Devices ---
+            modelBuilder.Entity<Device>().HasData(
+                new Device { Id = 1, Name = "Main Light",       ZoneId = 2, DeviceTypeId = 1, IpAddress = "192.168.1.10", Power = true,  Level = 80 },
+                new Device { Id = 2, Name = "TV Backlight",     ZoneId = 2, DeviceTypeId = 1, IpAddress = "192.168.1.11", Power = false, Level = 40 },
+                new Device { Id = 3, Name = "Garden Sprinkler", ZoneId = 3, DeviceTypeId = 2, IpAddress = "192.168.1.20", Power = false, Level = 0  },
+                new Device { Id = 4, Name = "Lawn Sprinkler",   ZoneId = 3, DeviceTypeId = 2, IpAddress = "192.168.1.21", Power = false, Level = 0  },
+                new Device { Id = 5, Name = "Bedroom Light",    ZoneId = 4, DeviceTypeId = 1, IpAddress = "192.168.1.30", Power = false, Level = 60 },
+                new Device { Id = 6, Name = "Thermostat",       ZoneId = 4, DeviceTypeId = 3, IpAddress = "192.168.1.31", Power = true,  Level = 21 },
+                new Device { Id = 7, Name = "Garage Light",     ZoneId = 5, DeviceTypeId = 1, IpAddress = "192.168.1.40", Power = false, Level = 100}
+            );
+
+            // --- Access ---
+            // admin gets full access to every zone
+            modelBuilder.Entity<Access>().HasData(
+                // alice: living room + garden (operator)
+                new Access { Id = 1, UserId = 2, ZoneId = 2, AccessLevel = "operator" },
+                new Access { Id = 2, UserId = 2, ZoneId = 3, AccessLevel = "operator" },
+                // bob: bedroom only (view)
+                new Access { Id = 3, UserId = 3, ZoneId = 4, AccessLevel = "view"  },
+                // charlie: all zones (view)
+                new Access { Id = 4, UserId = 4, ZoneId = 2, AccessLevel = "view"  },
+                new Access { Id = 5, UserId = 4, ZoneId = 3, AccessLevel = "view"  },
+                new Access { Id = 6, UserId = 4, ZoneId = 4, AccessLevel = "view"  },
+                new Access { Id = 7, UserId = 4, ZoneId = 5, AccessLevel = "view"  }
+            );
+
+            // --- Automations ---
+            modelBuilder.Entity<Automation>().HasData(
+                new Automation { Id = 1, DeviceId = 1, Power = true,  Level = 100, TimeCondition = "18:00", WeatherCondition = "any"    },
+                new Automation { Id = 2, DeviceId = 1, Power = false, Level = 0,   TimeCondition = "23:00", WeatherCondition = "any"    },
+                new Automation { Id = 3, DeviceId = 3, Power = true,  Level = 80,  TimeCondition = "07:00", WeatherCondition = "sunny"  },
+                new Automation { Id = 4, DeviceId = 3, Power = false, Level = 0,   TimeCondition = "09:00", WeatherCondition = "any"    },
+                new Automation { Id = 5, DeviceId = 6, Power = true,  Level = 20,  TimeCondition = "22:00", WeatherCondition = "cold"   }
+            );
 
             modelBuilder.Entity<AppSetting>().HasData(new AppSetting
             {

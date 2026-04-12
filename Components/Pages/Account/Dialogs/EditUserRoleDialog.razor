@@ -5,17 +5,17 @@
         <MudStack Spacing="2">
             <MudText Typo="Typo.h6">@Title</MudText>
 
-            <MudText Typo="Typo.body2">Utente: <b>@Username</b></MudText>
+            <MudText Typo="Typo.body2">User: <b>@Username</b></MudText>
 
-            <MudSelect T="string" Label="Ruolo" @bind-Value="_role" Variant="Variant.Outlined">
+            <MudSelect T="string" Label="Role" @bind-Value="_role" Variant="Variant.Outlined">
                 <MudSelectItem Value="@("user")">user</MudSelectItem>
                 <MudSelectItem Value="@("admin")">admin</MudSelectItem>
             </MudSelect>
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_role)">Salva</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@string.IsNullOrWhiteSpace(_role)">Save</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -27,7 +27,7 @@
 
     private string _role = "user";
 
-    private string Title => "Cambia ruolo";
+    private string Title => "Change role";
 
     protected override void OnInitialized()
     {

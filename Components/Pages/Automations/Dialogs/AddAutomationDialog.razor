@@ -7,7 +7,7 @@
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Nuova automazione</MudText>
+            <MudText Typo="Typo.h6">New automation</MudText>
 
             @if (_loading)
             {
@@ -18,11 +18,11 @@
                 @if (_devices.Count == 0)
                 {
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                        Nessun dispositivo disponibile.
+                        No devices available.
                     </MudAlert>
                 }
 
-                <MudSelect T="int?" Label="Dispositivo" Variant="Variant.Outlined" Margin="Margin.Dense"
+                <MudSelect T="int?" Label="Device" Variant="Variant.Outlined" Margin="Margin.Dense"
                            @bind-Value="_deviceId" Disabled="@(_devices.Count == 0)">
                     @foreach (var d in _devices)
                     {
@@ -37,24 +37,24 @@
                 </MudStack>
 
                 <MudStack Spacing="0">
-                    <MudText Typo="Typo.body2">Livello: @_level</MudText>
+                    <MudText Typo="Typo.body2">Level: @_level</MudText>
                     <MudSlider T="int" @bind-Value="_level" Min="0" Max="100" Step="1" Color="Color.Primary" />
                 </MudStack>
 
-                <MudText Typo="Typo.subtitle2" Class="mt-2">Condizioni</MudText>
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Conditions</MudText>
 
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudCheckBox @bind-Value="_useTime" Label="Orario" Color="Color.Primary" Dense="true" />
-                    <MudTimePicker @bind-Time="_time" Label="Ora" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    <MudCheckBox @bind-Value="_useTime" Label="Schedule" Color="Color.Primary" Dense="true" />
+                    <MudTimePicker @bind-Time="_time" Label="Time" Variant="Variant.Outlined" Margin="Margin.Dense"
                                    Disabled="@(!_useTime)" Editable="true" AmPm="false" Style="flex:1" />
                 </MudStack>
 
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudCheckBox @bind-Value="_useWeather" Label="Meteo" Color="Color.Primary" Dense="true" />
-                    <MudSelect T="string" Label="Condizione" Variant="Variant.Outlined" Margin="Margin.Dense"
+                    <MudCheckBox @bind-Value="_useWeather" Label="Weather" Color="Color.Primary" Dense="true" />
+                    <MudSelect T="string" Label="Condition" Variant="Variant.Outlined" Margin="Margin.Dense"
                                @bind-Value="_weatherCondition" Disabled="@(!_useWeather)" Style="flex:1">
-                        <MudSelectItem Value="@("rain")">Pioggia</MudSelectItem>
-                        <MudSelectItem Value="@("no_rain")">Nessuna pioggia</MudSelectItem>
+                        <MudSelectItem Value="@("rain")">Rain</MudSelectItem>
+                        <MudSelectItem Value="@("no_rain")">No rain</MudSelectItem>
                     </MudSelect>
                 </MudStack>
             }
@@ -62,9 +62,9 @@
     </DialogContent>
 
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
-                   Disabled="@(_saving || _loading || _devices.Count == 0 || _deviceId is null)">Crea</MudButton>
+                   Disabled="@(_saving || _loading || _devices.Count == 0 || _deviceId is null)">Create</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -100,7 +100,7 @@
 
             if (!_access.CanOperateAny)
             {
-                Snackbar.Add("Non hai permessi operatore su alcuna zona.", Severity.Warning);
+                Snackbar.Add("You don't have operator permissions on any zone.", Severity.Warning);
                 MudDialog.Cancel();
                 return;
             }
@@ -137,7 +137,7 @@
         }
         catch
         {
-            Snackbar.Add("Errore durante il caricamento dei dispositivi.", Severity.Error);
+            Snackbar.Add("Error loading devices.", Severity.Error);
         }
         finally
         {
@@ -156,7 +156,7 @@
             var device = _devices.FirstOrDefault(d => d.Id == deviceId);
             if (device is null || !_access.CanOperateZone(device.ZoneId))
             {
-                Snackbar.Add("Non hai i permessi per questo dispositivo.", Severity.Warning);
+                Snackbar.Add("You don't have permission for this device.", Severity.Warning);
                 return;
             }
 
@@ -180,12 +180,12 @@
             Db.Automations.Add(automation);
             await Db.SaveChangesAsync();
 
-            Snackbar.Add("Automazione creata.", Severity.Success);
+            Snackbar.Add("Automation created.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(automation.Id));
         }
         catch
         {
-            Snackbar.Add("Errore durante la creazione dell'automazione.", Severity.Error);
+            Snackbar.Add("Error creating automation.", Severity.Error);
         }
         finally
         {

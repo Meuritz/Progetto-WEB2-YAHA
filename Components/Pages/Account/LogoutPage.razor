@@ -13,7 +13,7 @@
             @_message
         </MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GoToLogin">
-            Torna al Login
+            Back to Login
         </MudButton>
     </MudStack>
 </MudPaper>
@@ -29,8 +29,8 @@
 
 @code {
     private bool _done;
-    private string _title = "Logout in corso...";
-    private string _message = "Attendi...";
+    private string _title = "Logging out...";
+    private string _message = "Please wait...";
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,8 +40,8 @@
 
         if (_done)
         {
-            _title = "Logout effettuato";
-            _message = "Verrai reindirizzato alla pagina di login tra pochi secondi.";
+            _title = "Logged out";
+            _message = "You will be redirected to the login page in a few seconds.";
             await Task.Delay(2000);
             Navigation.NavigateTo("/login", forceLoad: true);
         }

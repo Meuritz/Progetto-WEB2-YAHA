@@ -10,18 +10,18 @@
 
 @attribute [Authorize]
 
-<PageTitle>Dispositivi</PageTitle>
+<PageTitle>Devices</PageTitle>
 
 <MudPaper Class="pa-6 mt-6">
         <MudStack Spacing="2">
             <MudStack Row="true" justifycontent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">Dispositivi</MudText>
+            <MudText Typo="Typo.h5">Devices</MudText>
                 <MudStack Row="true" Spacing="1">
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
-                    @if (_isAdmin)
+                    @if (_isAdmin || _access.CanOperateAny)
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDeviceDialogAsync" Disabled="_loading">
-                            Aggiungi dispositivo
+                            Add device
                         </MudButton>
                     }
                 </MudStack>
@@ -30,7 +30,7 @@
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6" md="3">
                 <MudTextField @bind-Value="_search"
-                              Placeholder="Cerca per nome, tipo o zona..."
+                              Placeholder="Search by name, type or zone..."
                               Variant="Variant.Outlined"
                               Immediate="true"
                               Margin="Margin.Dense"
@@ -40,8 +40,8 @@
 
             <MudItem xs="12" sm="6" md="3">
                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                    <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_selectedZoneId" Style="flex:1">
-                        <MudSelectItem T="int?" Value="@((int?)null)">(tutte)</MudSelectItem>
+                    <MudSelect T="int?" Label="Zone" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_selectedZoneId" Style="flex:1">
+                        <MudSelectItem T="int?" Value="@((int?)null)">(all)</MudSelectItem>
                         @foreach (var z in _zones)
                         {
                             <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
@@ -56,7 +56,7 @@
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="string" Label="Tipo dispositivo" Variant="Variant.Outlined" Margin="Margin.Dense" MultiSelection="true" SelectedValues="_selectedTypes" SelectedValuesChanged="OnSelectedTypesChanged">
+                <MudSelect T="string" Label="Device type" Variant="Variant.Outlined" Margin="Margin.Dense" MultiSelection="true" SelectedValues="_selectedTypes" SelectedValuesChanged="OnSelectedTypesChanged">
                     @foreach (var t in _deviceTypes)
                     {
                         <MudSelectItem Value="@t">@t</MudSelectItem>
@@ -66,7 +66,7 @@
 
             <MudItem xs="12" sm="6" md="3">
                 <MudSelect T="string" Label="Power" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_powerFilter">
-                    <MudSelectItem Value="@PowerFilterAll">tutti</MudSelectItem>
+                    <MudSelectItem Value="@PowerFilterAll">all</MudSelectItem>
                     <MudSelectItem Value="@PowerFilterOn">on</MudSelectItem>
                     <MudSelectItem Value="@PowerFilterOff">off</MudSelectItem>
                 </MudSelect>
@@ -85,24 +85,24 @@
     else if (_zones.Count == 0)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-            Non hai accesso ad alcuna zona (oppure non ci sono zone configurate).
+            You don't have access to any zone (or no zones are configured).
         </MudAlert>
     }
     else
     {
         <MudTable Items="FilteredDevices" Dense="true" Hover="true" Bordered="true" Striped="true">
             <HeaderContent>
-                <MudTh>Nome</MudTh>
-                <MudTh>Tipo</MudTh>
-                <MudTh>Zona</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Zone</MudTh>
                 <MudTh>IP</MudTh>
                 <MudTh>Power</MudTh>
                 <MudTh align="Align.Right">Level</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Nome">@context.Name</MudTd>
-                <MudTd DataLabel="Tipo">@context.Type</MudTd>
-                <MudTd DataLabel="Zona">
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Type">@context.Type</MudTd>
+                <MudTd DataLabel="Zone">
                     @if (_isAdmin)
                     {
                         <MudSelect T="int" Value="@context.ZoneId" ValueChanged="@((int v) => ChangeDeviceZoneAsync(context, v))" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
@@ -207,7 +207,7 @@
         if (!_isAdmin)
             return;
 
-        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Aggiungi zona",
+        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Add zone",
             options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         var result = await dialog.Result;
@@ -227,7 +227,7 @@
 
     private async Task OpenAddDeviceDialogAsync()
     {
-        if (!_isAdmin)
+        if (!_isAdmin && !_access.CanOperateAny)
             return;
 
         var parameters = new DialogParameters
@@ -235,7 +235,7 @@
             [nameof(AddDeviceDialog.DefaultZoneId)] = _selectedZoneId
         };
 
-        var dialog = await Dialog.ShowAsync<AddDeviceDialog>("Aggiungi dispositivo", parameters,
+        var dialog = await Dialog.ShowAsync<AddDeviceDialog>("Add device", parameters,
             new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
@@ -367,7 +367,7 @@
 
             if (!CanOperateZone(zoneId.Value))
             {
-                Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
+                Snackbar.Add("You don't have permission to modify this device.", Severity.Warning);
                 return;
             }
 
@@ -378,11 +378,11 @@
             if (affected == 1)
                 row.Power = value;
             else
-                Snackbar.Add("Aggiornamento power non riuscito.", Severity.Error);
+                Snackbar.Add("Failed to update power state.", Severity.Error);
         }
         catch
         {
-            Snackbar.Add("Errore durante l'aggiornamento dello stato power.", Severity.Error);
+            Snackbar.Add("Error updating power state.", Severity.Error);
         }
         finally
         {
@@ -409,7 +409,7 @@
 
             if (!CanOperateZone(zoneId.Value))
             {
-                Snackbar.Add("Non hai i permessi per modificare questo dispositivo.", Severity.Warning);
+                Snackbar.Add("You don't have permission to modify this device.", Severity.Warning);
                 return;
             }
 
@@ -420,11 +420,11 @@
             if (affected == 1)
                 row.Level = value;
             else
-                Snackbar.Add("Aggiornamento livello non riuscito.", Severity.Error);
+                Snackbar.Add("Failed to update level.", Severity.Error);
         }
         catch
         {
-            Snackbar.Add("Errore durante l'aggiornamento del livello.", Severity.Error);
+            Snackbar.Add("Error updating level.", Severity.Error);
         }
         finally
         {
@@ -442,7 +442,7 @@
 
         if (_zones.All(z => z.Id != newZoneId))
         {
-            Snackbar.Add("Zona non valida.", Severity.Warning);
+            Snackbar.Add("Invalid zone.", Severity.Warning);
             return;
         }
 
@@ -458,7 +458,7 @@
         }
         catch
         {
-            Snackbar.Add("Errore durante il cambio zona del dispositivo.", Severity.Error);
+            Snackbar.Add("Error changing device zone.", Severity.Error);
         }
         finally
         {

@@ -22,6 +22,7 @@ Data/db.sqlite*
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+Migrations/*
 
 # Logs
 *.log

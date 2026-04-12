@@ -10,18 +10,18 @@
 
 @attribute [Authorize]
 
-<PageTitle>Automazioni</PageTitle>
+<PageTitle>Automations</PageTitle>
 
 <MudPaper Class="pa-6 mt-6">
     <MudStack Spacing="2">
         <MudStack Row="true" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.h5">Automazioni</MudText>
+            <MudText Typo="Typo.h5">Automations</MudText>
             <MudSpacer />
             <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_loading" />
             @if (_access?.CanOperateAny == true)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialogAsync" Disabled="_loading">
-                    Aggiungi automazione
+                    Add automation
                 </MudButton>
             }
         </MudStack>
@@ -37,36 +37,36 @@
         else if (_automations.Count == 0)
         {
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                Nessuna automazione configurata.
+                No automations configured.
             </MudAlert>
         }
         else
         {
             <MudTable Items="_automations" Dense="true" Hover="true" Bordered="true" Striped="true">
                 <HeaderContent>
-                    <MudTh>Dispositivo</MudTh>
-                    <MudTh>Zona</MudTh>
+                    <MudTh>Device</MudTh>
+                    <MudTh>Zone</MudTh>
                     <MudTh>Power</MudTh>
-                    <MudTh>Livello</MudTh>
-                    <MudTh>Orario</MudTh>
-                    <MudTh>Meteo</MudTh>
+                    <MudTh>Level</MudTh>
+                    <MudTh>Schedule</MudTh>
+                    <MudTh>Weather</MudTh>
                     @if (_access?.CanOperateAny == true)
                     {
                         <MudTh></MudTh>
                     }
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Dispositivo">@context.DeviceName</MudTd>
-                    <MudTd DataLabel="Zona">@context.ZoneName</MudTd>
+                    <MudTd DataLabel="Device">@context.DeviceName</MudTd>
+                    <MudTd DataLabel="Zone">@context.ZoneName</MudTd>
                     <MudTd DataLabel="Power">
                         <MudIcon Icon="@(context.Power ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
                                  Color="@(context.Power ? Color.Success : Color.Default)" />
                     </MudTd>
-                    <MudTd DataLabel="Livello">@context.Level</MudTd>
-                    <MudTd DataLabel="Orario">
+                    <MudTd DataLabel="Level">@context.Level</MudTd>
+                    <MudTd DataLabel="Schedule">
                         @if (string.IsNullOrWhiteSpace(context.TimeCondition))
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Default">Sempre</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Default">Always</MudText>
                         }
                         else
                         {
@@ -76,17 +76,17 @@
                             </MudStack>
                         }
                     </MudTd>
-                    <MudTd DataLabel="Meteo">
+                    <MudTd DataLabel="Weather">
                         @switch (context.WeatherCondition)
                         {
                             case "rain":
-                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.WaterDrop">Pioggia</MudChip>
+                                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.WaterDrop">Rain</MudChip>
                                 break;
                             case "no_rain":
-                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.WbSunny">No pioggia</MudChip>
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.WbSunny">No rain</MudChip>
                                 break;
                             default:
-                                <MudText Typo="Typo.body2" Color="Color.Default">Qualsiasi</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default">Any</MudText>
                                 break;
                         }
                     </MudTd>
@@ -185,7 +185,7 @@
         if (!_access.CanOperateAny)
             return;
 
-        var dialog = await Dialog.ShowAsync<AddAutomationDialog>("Aggiungi automazione",
+        var dialog = await Dialog.ShowAsync<AddAutomationDialog>("Add automation",
             new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
@@ -210,16 +210,16 @@
             if (affected == 1)
             {
                 _automations.Remove(row);
-                Snackbar.Add("Automazione eliminata.", Severity.Success);
+                Snackbar.Add("Automation deleted.", Severity.Success);
             }
             else
             {
-                Snackbar.Add("Eliminazione non riuscita.", Severity.Error);
+                Snackbar.Add("Delete failed.", Severity.Error);
             }
         }
         catch
         {
-            Snackbar.Add("Errore durante l'eliminazione.", Severity.Error);
+            Snackbar.Add("Error deleting automation.", Severity.Error);
         }
         finally
         {

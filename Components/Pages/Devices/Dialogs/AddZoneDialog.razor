@@ -6,20 +6,20 @@
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Nuova zona</MudText>
+            <MudText Typo="Typo.h6">New zone</MudText>
 
-            <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Il nome è obbligatorio" />
+            <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Name is required" />
 
-            <MudSelect T="string" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_type">
-                <MudSelectItem Value="@ZoneTypeInterno">interno</MudSelectItem>
-                <MudSelectItem Value="@ZoneTypeEsterno">esterno</MudSelectItem>
+            <MudSelect T="string" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_type">
+                <MudSelectItem Value="@ZoneTypeIndoor">indoor</MudSelectItem>
+                <MudSelectItem Value="@ZoneTypeOutdoor">outdoor</MudSelectItem>
             </MudSelect>
         </MudStack>
     </DialogContent>
 
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">Crea</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_saving">Create</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -30,11 +30,11 @@
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
-    private const string ZoneTypeInterno = "interno";
-    private const string ZoneTypeEsterno = "esterno";
+    private const string ZoneTypeIndoor = "indoor";
+    private const string ZoneTypeOutdoor = "outdoor";
 
     private string _name = string.Empty;
-    private string _type = ZoneTypeInterno;
+    private string _type = ZoneTypeIndoor;
     private bool _saving;
 
     private async Task SaveAsync()
@@ -48,7 +48,7 @@
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             if (!authState.User.IsInRole("admin"))
             {
-                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
+                Snackbar.Add("This operation is restricted to administrators.", Severity.Warning);
                 MudDialog.Cancel();
                 return;
             }
@@ -60,9 +60,9 @@
                 return;
 
             type = type.ToLowerInvariant();
-            if (type is not (ZoneTypeInterno or ZoneTypeEsterno))
+            if (type is not (ZoneTypeIndoor or ZoneTypeOutdoor))
             {
-                Snackbar.Add("Tipo non valido: scegli 'interno' o 'esterno'.", Severity.Warning);
+                Snackbar.Add("Invalid type: choose 'indoor' or 'outdoor'.", Severity.Warning);
                 return;
             }
 
@@ -72,7 +72,7 @@
 
             if (exists)
             {
-                Snackbar.Add("Esiste già una zona con questo nome.", Severity.Warning);
+                Snackbar.Add("A zone with this name already exists.", Severity.Warning);
                 return;
             }
 
@@ -85,12 +85,12 @@
             Db.Zones.Add(zone);
             await Db.SaveChangesAsync();
 
-            Snackbar.Add($"Zona '{zone.Name}' creata.", Severity.Success);
+            Snackbar.Add($"Zone '{zone.Name}' created.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(zone.Id));
         }
         catch
         {
-            Snackbar.Add("Errore durante la creazione della zona.", Severity.Error);
+            Snackbar.Add("Error creating zone.", Severity.Error);
         }
         finally
         {

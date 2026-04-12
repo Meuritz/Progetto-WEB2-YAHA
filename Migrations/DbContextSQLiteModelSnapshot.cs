@@ -40,6 +40,57 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         .IsUnique();
 
                     b.ToTable("access", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AccessLevel = "operator",
+                            UserId = 2,
+                            ZoneId = 2
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AccessLevel = "operator",
+                            UserId = 2,
+                            ZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 3,
+                            AccessLevel = "view",
+                            UserId = 3,
+                            ZoneId = 4
+                        },
+                        new
+                        {
+                            Id = 4,
+                            AccessLevel = "view",
+                            UserId = 4,
+                            ZoneId = 2
+                        },
+                        new
+                        {
+                            Id = 5,
+                            AccessLevel = "view",
+                            UserId = 4,
+                            ZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 6,
+                            AccessLevel = "view",
+                            UserId = 4,
+                            ZoneId = 4
+                        },
+                        new
+                        {
+                            Id = 7,
+                            AccessLevel = "view",
+                            UserId = 4,
+                            ZoneId = 5
+                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.AppSetting", b =>
@@ -116,6 +167,33 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                             PasswordHash = "$2a$11$5bXqGaqh3uehFVuTEdfWLOfFUxE7KFIRYv/XOqmEgdon7oNxpVQxS",
                             Role = "admin",
                             Username = "admin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DarkMode = false,
+                            Mail = "alice@example.local",
+                            PasswordHash = "$2a$12$vXc041cxsHJ7zMmuMHxjl.JpanScQdMOicmmzD74UErojYRCcHaoi",
+                            Role = "user",
+                            Username = "alice"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DarkMode = true,
+                            Mail = "bob@example.local",
+                            PasswordHash = "$2a$12$vXc041cxsHJ7zMmuMHxjl.JpanScQdMOicmmzD74UErojYRCcHaoi",
+                            Role = "user",
+                            Username = "bob"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DarkMode = false,
+                            Mail = "charlie@example.local",
+                            PasswordHash = "$2a$12$vXc041cxsHJ7zMmuMHxjl.JpanScQdMOicmmzD74UErojYRCcHaoi",
+                            Role = "user",
+                            Username = "charlie"
                         });
                 });
 
@@ -147,6 +225,53 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     b.HasIndex("DeviceId");
 
                     b.ToTable("automation", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DeviceId = 1,
+                            Level = 100,
+                            Power = true,
+                            TimeCondition = "18:00",
+                            WeatherCondition = "any"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DeviceId = 1,
+                            Level = 0,
+                            Power = false,
+                            TimeCondition = "23:00",
+                            WeatherCondition = "any"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DeviceId = 3,
+                            Level = 80,
+                            Power = true,
+                            TimeCondition = "07:00",
+                            WeatherCondition = "sunny"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DeviceId = 3,
+                            Level = 0,
+                            Power = false,
+                            TimeCondition = "09:00",
+                            WeatherCondition = "any"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DeviceId = 6,
+                            Level = 20,
+                            Power = true,
+                            TimeCondition = "22:00",
+                            WeatherCondition = "cold"
+                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.Device", b =>
@@ -181,6 +306,78 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                     b.HasIndex("ZoneId");
 
                     b.ToTable("device", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DeviceTypeId = 1,
+                            IpAddress = "192.168.1.10",
+                            Level = 80,
+                            Name = "Main Light",
+                            Power = true,
+                            ZoneId = 2
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DeviceTypeId = 1,
+                            IpAddress = "192.168.1.11",
+                            Level = 40,
+                            Name = "TV Backlight",
+                            Power = false,
+                            ZoneId = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DeviceTypeId = 2,
+                            IpAddress = "192.168.1.20",
+                            Level = 0,
+                            Name = "Garden Sprinkler",
+                            Power = false,
+                            ZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DeviceTypeId = 2,
+                            IpAddress = "192.168.1.21",
+                            Level = 0,
+                            Name = "Lawn Sprinkler",
+                            Power = false,
+                            ZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DeviceTypeId = 1,
+                            IpAddress = "192.168.1.30",
+                            Level = 60,
+                            Name = "Bedroom Light",
+                            Power = false,
+                            ZoneId = 4
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DeviceTypeId = 3,
+                            IpAddress = "192.168.1.31",
+                            Level = 21,
+                            Name = "Thermostat",
+                            Power = true,
+                            ZoneId = 4
+                        },
+                        new
+                        {
+                            Id = 7,
+                            DeviceTypeId = 1,
+                            IpAddress = "192.168.1.40",
+                            Level = 100,
+                            Name = "Garage Light",
+                            Power = false,
+                            ZoneId = 5
+                        });
                 });
 
             modelBuilder.Entity("Progetto_Web_2_IoT_Auth.Data.Model.DeviceType", b =>
@@ -214,7 +411,7 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                         new
                         {
                             Id = 3,
-                            Name = "termostato"
+                            Name = "thermostat"
                         });
                 });
 
@@ -242,6 +439,30 @@ namespace Progetto_Web_2_IoT_Auth.Migrations
                             Id = 1,
                             Name = "default",
                             Type = "default"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Living Room",
+                            Type = "indoor"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Garden",
+                            Type = "outdoor"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Bedroom",
+                            Type = "indoor"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Garage",
+                            Type = "outdoor"
                         });
                 });
 

@@ -99,34 +99,75 @@ else
         </MudItem>
     </MudGrid>
 
-    @* ── Devices by type (donut-style breakdown) + Quick toggle ── *@
+    @* ── Devices & Zones ── *@
     <MudGrid Class="mt-4" Spacing="3">
-        @* Left: device type breakdown *@
-        <MudItem xs="12" md="4">
+        @* Left: device list *@
+        <MudItem xs="12" md="5">
             <MudPaper Class="pa-4" Elevation="2" Style="height:100%">
-                <MudText Typo="Typo.h6" Class="mb-3">Devices by type</MudText>
-                @if (_devicesByType.Count == 0)
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Devices</MudText>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/devices" StartIcon="@Icons.Material.Filled.ArrowForward" Size="Size.Small">
+                        Manage
+                    </MudButton>
+                </MudStack>
+                @if (_allDevices.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Default">No devices.</MudText>
                 }
                 else
                 {
-                    @foreach (var entry in _devicesByType)
-                    {
-                        var pct = _totalDevices > 0 ? (int)Math.Round(100.0 * entry.Total / _totalDevices) : 0;
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-                            <MudIcon Icon="@GetDeviceTypeIcon(entry.Type)" Size="Size.Small" Color="@GetDeviceTypeColor(entry.Type)" />
-                            <MudText Typo="Typo.body2" Style="min-width:90px">@entry.Type</MudText>
-                            <MudProgressLinear Color="@GetDeviceTypeColor(entry.Type)" Value="@pct" Class="flex-grow-1" Rounded="true" Size="Size.Medium" />
-                            <MudText Typo="Typo.caption" Style="min-width:50px; text-align:right">@entry.On/@entry.Total</MudText>
-                        </MudStack>
-                    }
+                    <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Zone</th>
+                                <th>Power</th>
+                                <th style="text-align:right">Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dev in _allDevices)
+                            {
+                                <tr>
+                                    <td>
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudIcon Icon="@GetDeviceTypeIcon(dev.TypeName)" Size="Size.Small" Color="@GetDeviceTypeColor(dev.TypeName)" />
+                                            <MudText Typo="Typo.body2">@dev.Name</MudText>
+                                        </MudStack>
+                                    </td>
+                                    <td><MudText Typo="Typo.body2">@dev.ZoneName</MudText></td>
+                                    <td>
+                                        @if (dev.CanOperate)
+                                        {
+                                            <MudToggleIconButton Toggled="@dev.Power"
+                                                                 ToggledChanged="@(v => QuickToggleAsync(dev, v))"
+                                                                 Icon="@Icons.Material.Filled.ToggleOff"
+                                                                 ToggledIcon="@Icons.Material.Filled.ToggleOn"
+                                                                 Color="Color.Default"
+                                                                 ToggledColor="Color.Success"
+                                                                 Size="Size.Small" />
+                                        }
+                                        else
+                                        {
+                                            <MudIcon Icon="@(dev.Power ? Icons.Material.Filled.ToggleOn : Icons.Material.Filled.ToggleOff)"
+                                                     Color="@(dev.Power ? Color.Success : Color.Default)"
+                                                     Size="Size.Small" />
+                                        }
+                                    </td>
+                                    <td style="text-align:right">
+                                        <MudText Typo="Typo.body2">@dev.Level%</MudText>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
                 }
             </MudPaper>
         </MudItem>
 
         @* Right: zones overview *@
-        <MudItem xs="12" md="8">
+        <MudItem xs="12" md="7">
             <MudPaper Class="pa-4" Elevation="2" Style="height:100%">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
                     <MudText Typo="Typo.h6">Zones</MudText>
@@ -290,7 +331,7 @@ else
     private int _totalAutomations;
 
     // breakdowns
-    private readonly List<DeviceTypeStat> _devicesByType = new();
+    private readonly List<DashboardDeviceRow> _allDevices = new();
     private readonly List<ZoneSummary> _zoneSummaries = new();
     private readonly List<UpcomingAutomation> _upcomingAutomations = new();
 
@@ -314,7 +355,7 @@ else
         {
             var access = await AccessService.GetAccessInfoAsync();
 
-            // ── Determine accessible zone IDs ──
+            // Determine accessible zone IDs
             List<int> zoneIds;
             List<Zone> zones;
 
@@ -334,7 +375,7 @@ else
 
             _totalZones = zones.Count;
 
-            // ── Devices ──
+            // Devices retrivial
             var devices = zoneIds.Count > 0
                 ? await Db.Devices.AsNoTracking()
                     .Include(d => d.DeviceType)
@@ -347,19 +388,7 @@ else
             _totalDevices = devices.Count;
             _devicesOn = devices.Count(d => d.Power);
 
-            // by type
-            _devicesByType.Clear();
-            foreach (var g in devices.GroupBy(d => d.DeviceType?.Name ?? "altro").OrderBy(g => g.Key))
-            {
-                _devicesByType.Add(new DeviceTypeStat
-                {
-                    Type = g.Key,
-                    Total = g.Count(),
-                    On = g.Count(d => d.Power)
-                });
-            }
-
-            // ── Zone summaries ──
+            // Zone summaries
             var automations = zoneIds.Count > 0
                 ? await Db.Automations.AsNoTracking()
                     .Include(a => a.Device)
@@ -381,11 +410,12 @@ else
                     DevicesTotal = zoneDevices.Count,
                     DevicesOn = zoneDevices.Count(d => d.Power),
                     AutomationCount = zoneAutos,
-                    Devices = zoneDevices.Select(d => new ZoneDeviceRow
+                    Devices = zoneDevices.Select(d => new DashboardDeviceRow
                     {
                         Id = d.Id,
                         Name = d.Name,
                         TypeName = d.DeviceType?.Name ?? "",
+                        ZoneName = d.Zone?.Name ?? "",
                         Power = d.Power,
                         Level = d.Level,
                         CanOperate = access.CanOperateZone(d.ZoneId)
@@ -393,7 +423,11 @@ else
                 });
             }
 
-            // ── Upcoming automations (time-based, sorted by next occurrence) ──
+            // flat device list (same instances as zone summaries for sync)
+            _allDevices.Clear();
+            _allDevices.AddRange(_zoneSummaries.SelectMany(z => z.Devices));
+
+            // Upcoming automations, by the nearest one
             var now = DateTime.Now.ToString("HH:mm");
             _upcomingAutomations.Clear();
 
@@ -401,7 +435,6 @@ else
                 .Where(a => !string.IsNullOrWhiteSpace(a.TimeCondition))
                 .OrderBy(a =>
                 {
-                    // sort: future today first, then tomorrow's
                     var t = a.TimeCondition.Trim();
                     return string.Compare(t, now, StringComparison.Ordinal) > 0 ? 0 : 1;
                 })
@@ -439,7 +472,7 @@ else
                 });
             }
 
-            // ── Weather ──
+            // Weather retrival
             try
             {
                 var weather = await WeatherService.GetCurrentWeatherAsync();
@@ -461,7 +494,7 @@ else
         }
     }
 
-    private async Task QuickToggleAsync(ZoneDeviceRow dev, bool value)
+    private async Task QuickToggleAsync(DashboardDeviceRow dev, bool value)
     {
         try
         {
@@ -473,7 +506,7 @@ else
             {
                 dev.Power = value;
 
-                // update summary counts
+                // update zone summary counts (objects are shared so Power is already set)
                 var zone = _zoneSummaries.FirstOrDefault(z => z.Devices.Any(d => d.Id == dev.Id));
                 if (zone is not null)
                     zone.DevicesOn = zone.Devices.Count(d => d.Power);
@@ -520,13 +553,17 @@ else
         _ => (Icons.Material.Filled.Cloud, Color.Default)
     };
 
-    // ── View models ──
+    // View models
 
-    private sealed class DeviceTypeStat
+    private sealed class DashboardDeviceRow
     {
-        public string Type { get; set; } = "";
-        public int Total { get; set; }
-        public int On { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string TypeName { get; set; } = "";
+        public string ZoneName { get; set; } = "";
+        public bool Power { get; set; }
+        public int Level { get; set; }
+        public bool CanOperate { get; set; }
     }
 
     private sealed class ZoneSummary
@@ -536,17 +573,7 @@ else
         public int DevicesOn { get; set; }
         public int AutomationCount { get; set; }
         public bool AllOff => DevicesOn == 0;
-        public List<ZoneDeviceRow> Devices { get; set; } = new();
-    }
-
-    private sealed class ZoneDeviceRow
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string TypeName { get; set; } = "";
-        public bool Power { get; set; }
-        public int Level { get; set; }
-        public bool CanOperate { get; set; }
+        public List<DashboardDeviceRow> Devices { get; set; } = new();
     }
 
     private sealed class UpcomingAutomation

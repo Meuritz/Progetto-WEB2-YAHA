@@ -59,7 +59,7 @@
                           AdornmentIcon="@(_showPwd? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
                           OnAdornmentClick="@(() => _showPwd = !_showPwd)" />
 
-            <MudTextField Label="Ripeti Password"
+            <MudTextField Label="Confirm Password"
                           @bind-Value="_model.ConfirmPassword"
                           InputType="@(_showConfirm? InputType.Text: InputType.Password)"
                           Variant="Variant.Outlined"
@@ -87,7 +87,7 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                 }
-                Crea Account
+                Create Account
             </MudButton>
         </EditForm>
     </MudPaper>
@@ -151,14 +151,14 @@
             var mail = _mail.Trim();
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(mail))
             {
-                Snackbar.Add("Username e email sono obbligatori.", Severity.Error);
+                Snackbar.Add("Username and email are required.", Severity.Error);
                 return;
             }
 
             var exists = await Db.Users.AnyAsync(u => u.Username == username || u.Mail == mail);
             if (exists)
             {
-                Snackbar.Add("Username o email già in uso.", Severity.Warning);
+                Snackbar.Add("Username or email already in use.", Severity.Warning);
                 return;
             }
 
@@ -176,14 +176,14 @@
             await Db.SaveChangesAsync();
             await tx.CommitAsync();
 
-            _resultMessage = "Registrazione completata con successo!";
+            _resultMessage = "Registration completed successfully!";
             _resultSeverity = Severity.Success;
             ResetForm();
             Nav.NavigateTo("/manage-users", forceLoad: true);
         }
         catch (Exception ex)
         {
-            _resultMessage = "Registrazione fallita.";
+            _resultMessage = "Registration failed.";
             _resultSeverity = Severity.Error;
             Logger.LogError(ex, "Register error");
             Snackbar.Add("Error: " + ex.Message, Severity.Error);

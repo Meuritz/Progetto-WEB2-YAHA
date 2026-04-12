@@ -3,12 +3,13 @@
 @using Progetto_Web_2_IoT_Auth.Data
 @using Progetto_Web_2_IoT_Auth.Data.Model
 @using Progetto_Web_2_IoT_Auth.Components.Pages.Devices.Dialogs
+@using Progetto_Web_2_IoT_Auth.Services
 @using System.Net
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Nuovo dispositivo</MudText>
+            <MudText Typo="Typo.h6">New device</MudText>
 
             @if (_loading)
             {
@@ -19,33 +20,36 @@
                 @if (_zones.Count == 0)
                 {
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                        Nessuna zona disponibile.
+                        No zones available.
                     </MudAlert>
                 }
 
                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                    <MudSelect T="int?" Label="Zona" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_zoneId" Style="flex:1" Disabled="@(_zones.Count == 0)">
+                    <MudSelect T="int?" Label="Zone" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_zoneId" Style="flex:1" Disabled="@(_zones.Count == 0)">
                         @foreach (var z in _zones)
                         {
                             <MudSelectItem T="int?" Value="@((int?)z.Id)">@z.Name</MudSelectItem>
                         }
                     </MudSelect>
 
-                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_saving" OnClick="OpenAddZoneDialogAsync" />
+                    @if (_isAdmin)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_saving" OnClick="OpenAddZoneDialogAsync" />
+                    }
                 </MudStack>
 
-                <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Il nome è obbligatorio" />
+                <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" RequiredError="Name is required" />
 
                 <MudTextField @bind-Value="_ipAddress" Label="IP" Variant="Variant.Outlined" Margin="Margin.Dense" />
 
                 @if (_types.Count == 0)
                 {
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                        Nessun tipo dispositivo configurato.
+                        No device types configured.
                     </MudAlert>
                 }
 
-                <MudSelect T="int?" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_typeId" Required="true" RequiredError="Il tipo è obbligatorio" Disabled="@(_types.Count == 0)">
+                <MudSelect T="int?" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_typeId" Required="true" RequiredError="Type is required" Disabled="@(_types.Count == 0)">
                     @foreach (var t in _types)
                     {
                         <MudSelectItem T="int?" Value="@((int?)t.Id)">@t.Name</MudSelectItem>
@@ -56,8 +60,8 @@
     </DialogContent>
 
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_saving || _loading || _zones.Count == 0 || _types.Count == 0)">Crea</MudButton>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_saving || _loading || _zones.Count == 0 || _types.Count == 0)">Create</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -68,11 +72,14 @@
 
     [Inject] private DbContextSQLite Db { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private UserAccessService AccessService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IDialogService Dialog { get; set; } = null!;
 
     private readonly List<Zone> _zones = new();
     private readonly List<DeviceType> _types = new();
+    private UserAccessInfo _access = null!;
+    private bool _isAdmin;
 
     private bool _loading;
     private bool _saving;
@@ -87,18 +94,33 @@
         _loading = true;
         try
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (!authState.User.IsInRole("admin"))
+            _access = await AccessService.GetAccessInfoAsync();
+            _isAdmin = _access.IsAdmin;
+
+            if (!_isAdmin && !_access.CanOperateAny)
             {
-                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
+                Snackbar.Add("You don't have permission to add devices.", Severity.Warning);
                 MudDialog.Cancel();
                 return;
             }
 
-            var zones = await Db.Zones
-                .AsNoTracking()
-                .OrderBy(z => z.Name)
-                .ToListAsync();
+            List<Zone> zones;
+            if (_isAdmin)
+            {
+                zones = await Db.Zones
+                    .AsNoTracking()
+                    .OrderBy(z => z.Name)
+                    .ToListAsync();
+            }
+            else
+            {
+                var operatorZoneIds = _access.OperatorZoneIds;
+                zones = await Db.Zones
+                    .AsNoTracking()
+                    .Where(z => operatorZoneIds.Contains(z.Id))
+                    .OrderBy(z => z.Name)
+                    .ToListAsync();
+            }
 
             var types = await Db.DeviceTypes
                 .AsNoTracking()
@@ -124,7 +146,7 @@
         }
         catch
         {
-            Snackbar.Add("Errore durante il caricamento delle zone.", Severity.Error);
+            Snackbar.Add("Error loading zones.", Severity.Error);
         }
         finally
         {
@@ -134,7 +156,7 @@
 
     private async Task OpenAddZoneDialogAsync()
     {
-        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Aggiungi zona",
+        var dialog = await Dialog.ShowAsync<AddZoneDialog>("Add zone",
             options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
 
         var result = await dialog.Result;
@@ -163,16 +185,14 @@
         _saving = true;
         try
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            if (!authState.User.IsInRole("admin"))
-            {
-                Snackbar.Add("Operazione consentita solo agli amministratori.", Severity.Warning);
-                MudDialog.Cancel();
-                return;
-            }
-
             if (_zoneId is not int zid)
                 return;
+
+            if (!_access.IsAdmin && !_access.CanOperateZone(zid))
+            {
+                Snackbar.Add("You don't have permission to add devices to this zone.", Severity.Warning);
+                return;
+            }
 
             if (_typeId is not int typeId)
                 return;
@@ -185,7 +205,7 @@
 
             if (!string.IsNullOrWhiteSpace(ip) && !IPAddress.TryParse(ip, out _))
             {
-                Snackbar.Add("IP non valido.", Severity.Warning);
+                Snackbar.Add("Invalid IP address.", Severity.Warning);
                 return;
             }
 
@@ -203,12 +223,12 @@
             Db.Devices.Add(device);
             await Db.SaveChangesAsync();
 
-            Snackbar.Add($"Dispositivo '{device.Name}' creato.", Severity.Success);
+            Snackbar.Add($"Device '{device.Name}' created.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(device.Id));
         }
         catch
         {
-            Snackbar.Add("Errore durante la creazione del dispositivo.", Severity.Error);
+            Snackbar.Add("Error creating device.", Severity.Error);
         }
         finally
         {
