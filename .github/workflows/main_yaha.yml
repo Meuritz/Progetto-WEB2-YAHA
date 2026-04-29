@@ -30,7 +30,7 @@ jobs:
         run: dotnet restore
 
       - name: Create and populate the db
-        run: dotnet ef database update --project <PATH_TO_YOUR_.csproj> --startup-project <PATH_TO_STARTUP_.csproj>
+        run: dotnet ef database update
      
       - name: Create and populate the db
         run: dotnet ef database update
