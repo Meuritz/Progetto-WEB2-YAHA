@@ -22,12 +22,15 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.x'
-
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
-
+          
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 10.0.3
+     
       - name: Create and populate the db
         run: dotnet ef database update
+        
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
       - name: dotnet publish
         run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
