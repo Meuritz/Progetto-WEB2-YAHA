@@ -71,6 +71,10 @@ using (var scope = app.Services.CreateScope())
         db.Database.EnsureCreated();
         log.LogInformation("[DB-INIT] EnsureCreated complete");
     }
+
+    // Azure Files (the mount under /home on App Service Linux) doesn't support
+    // SQLite's WAL shared-memory locking, so force the DB into DELETE journal mode.
+    db.Database.ExecuteSqlRaw("PRAGMA journal_mode=DELETE;");
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found");
