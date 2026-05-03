@@ -49,13 +49,41 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DbContextSQLite>();
 
-    // If the DB exists but has no applied migrations it is in a broken state
-    // (created by a previous deployment before migrations were wired up).
-    // Delete it so Migrate() can build a clean schema from scratch.
-    if (db.Database.CanConnect() && !db.Database.GetAppliedMigrations().Any())
-        db.Database.EnsureDeleted();
+    Console.WriteLine($"[DB-INIT] Path={dbPath} Exists={File.Exists(dbPath)}");
 
-    db.Database.Migrate();
+    var found = db.Database.GetMigrations().ToList();
+    Console.WriteLine($"[DB-INIT] Migrations in assembly ({found.Count}): {string.Join(", ", found)}");
+
+    if (db.Database.CanConnect())
+    {
+        var applied = db.Database.GetAppliedMigrations().ToList();
+        Console.WriteLine($"[DB-INIT] Applied ({applied.Count}): {string.Join(", ", applied)}");
+        if (!applied.Any())
+        {
+            Console.WriteLine("[DB-INIT] DB exists but no migrations applied - deleting for fresh start");
+            db.Database.EnsureDeleted();
+        }
+    }
+
+    try
+    {
+        db.Database.Migrate();
+        var afterApplied = db.Database.GetAppliedMigrations().ToList();
+        Console.WriteLine($"[DB-INIT] Migrate done. Applied now ({afterApplied.Count}): {string.Join(", ", afterApplied)}");
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";
+        using var reader = cmd.ExecuteReader();
+        var tables = new List<string>();
+        while (reader.Read()) tables.Add(reader.GetString(0));
+        Console.WriteLine($"[DB-INIT] Tables ({tables.Count}): {string.Join(", ", tables)}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB-INIT] Migrate FAILED: {ex.GetType().Name}: {ex.Message}");
+        throw;
+    }
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found");
