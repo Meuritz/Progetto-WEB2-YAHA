@@ -48,41 +48,28 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DbContextSQLite>();
+    var log = app.Logger;
 
-    Console.WriteLine($"[DB-INIT] Path={dbPath} Exists={File.Exists(dbPath)}");
+    log.LogInformation("[DB-INIT] Path={Path} Exists={Exists}", dbPath, File.Exists(dbPath));
 
-    var found = db.Database.GetMigrations().ToList();
-    Console.WriteLine($"[DB-INIT] Migrations in assembly ({found.Count}): {string.Join(", ", found)}");
-
+    // Check whether the schema is already in place by looking for one of our tables.
+    bool schemaReady = false;
     if (db.Database.CanConnect())
     {
-        var applied = db.Database.GetAppliedMigrations().ToList();
-        Console.WriteLine($"[DB-INIT] Applied ({applied.Count}): {string.Join(", ", applied)}");
-        if (!applied.Any())
-        {
-            Console.WriteLine("[DB-INIT] DB exists but no migrations applied - deleting for fresh start");
-            db.Database.EnsureDeleted();
-        }
-    }
-
-    try
-    {
-        db.Database.Migrate();
-        var afterApplied = db.Database.GetAppliedMigrations().ToList();
-        Console.WriteLine($"[DB-INIT] Migrate done. Applied now ({afterApplied.Count}): {string.Join(", ", afterApplied)}");
         var conn = db.Database.GetDbConnection();
         if (conn.State != System.Data.ConnectionState.Open) conn.Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";
-        using var reader = cmd.ExecuteReader();
-        var tables = new List<string>();
-        while (reader.Read()) tables.Add(reader.GetString(0));
-        Console.WriteLine($"[DB-INIT] Tables ({tables.Count}): {string.Join(", ", tables)}");
+        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='automation'";
+        schemaReady = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        log.LogInformation("[DB-INIT] schemaReady={SchemaReady}", schemaReady);
     }
-    catch (Exception ex)
+
+    if (!schemaReady)
     {
-        Console.WriteLine($"[DB-INIT] Migrate FAILED: {ex.GetType().Name}: {ex.Message}");
-        throw;
+        log.LogInformation("[DB-INIT] Building schema from model via EnsureCreated");
+        db.Database.EnsureDeleted();
+        db.Database.EnsureCreated();
+        log.LogInformation("[DB-INIT] EnsureCreated complete");
     }
 }
 
