@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -9,7 +10,9 @@ using Progetto_Web_2_IoT_Auth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var dbFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
+var dbFolder = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+    ? "/home/data"
+    : Path.Combine(builder.Environment.ContentRootPath, "Data");
 Directory.CreateDirectory(dbFolder);
 var dbPath = Path.Combine(dbFolder, "db.sqlite");
 
