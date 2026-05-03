@@ -48,11 +48,20 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DbContextSQLite>();
+
+    // If the DB exists but has no applied migrations it is in a broken state
+    // (created by a previous deployment before migrations were wired up).
+    // Delete it so Migrate() can build a clean schema from scratch.
+    if (db.Database.CanConnect() && !db.Database.GetAppliedMigrations().Any())
+        db.Database.EnsureDeleted();
+
     db.Database.Migrate();
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found");
-app.UseHttpsRedirection();
+
+if (app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
