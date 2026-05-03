@@ -38,6 +38,12 @@ builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbContextSQLite>();
+    db.Database.Migrate();
+}
+
 app.UseStatusCodePagesWithReExecute("/not-found");
 app.UseHttpsRedirection();
 
