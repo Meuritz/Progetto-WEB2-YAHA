@@ -9,12 +9,16 @@ using Progetto_Web_2_IoT_Auth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var dbFolder = Path.Combine(builder.Environment.ContentRootPath, "Data");
+Directory.CreateDirectory(dbFolder);
+var dbPath = Path.Combine(dbFolder, "db.sqlite");
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
 
-builder.Services.AddDbContext<DbContextSQLite>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<DbContextSQLite>(options => options.UseSqlite($"Data Source={dbPath}"));
 
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>
@@ -41,7 +45,6 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DbContextSQLite>();
-    Directory.CreateDirectory("Data");
     db.Database.Migrate();
 }
 
