@@ -1,0 +1,144 @@
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Edit zone</MudText>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_notFound)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">Zone not found.</MudAlert>
+            }
+            else
+            {
+                <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" />
+
+                <MudSelect T="string" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense" @bind-Value="_type">
+                    <MudSelectItem Value="@ZoneTypeIndoor">indoor</MudSelectItem>
+                    <MudSelectItem Value="@ZoneTypeOutdoor">outdoor</MudSelectItem>
+                </MudSelect>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                   Disabled="@(_saving || _loading || _notFound)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int ZoneId { get; set; }
+
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private const string ZoneTypeIndoor = "indoor";
+    private const string ZoneTypeOutdoor = "outdoor";
+
+    private string _name = string.Empty;
+    private string _type = ZoneTypeIndoor;
+    private bool _loading;
+    private bool _saving;
+    private bool _notFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (!auth.User.IsInRole("admin"))
+            {
+                Snackbar.Add("This operation is restricted to administrators.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            var zone = await Db.Zones.AsNoTracking().FirstOrDefaultAsync(z => z.Id == ZoneId);
+            if (zone is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            _name = zone.Name;
+            _type = string.Equals(zone.Type, ZoneTypeOutdoor, StringComparison.OrdinalIgnoreCase)
+                ? ZoneTypeOutdoor
+                : ZoneTypeIndoor;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _notFound)
+            return;
+
+        _saving = true;
+        try
+        {
+            var name = (_name ?? string.Empty).Trim();
+            var type = (_type ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(type))
+                return;
+
+            if (type is not (ZoneTypeIndoor or ZoneTypeOutdoor))
+            {
+                Snackbar.Add("Invalid type.", Severity.Warning);
+                return;
+            }
+
+            var clash = await Db.Zones
+                .AsNoTracking()
+                .AnyAsync(z => z.Id != ZoneId && z.Name == name);
+
+            if (clash)
+            {
+                Snackbar.Add("A zone with this name already exists.", Severity.Warning);
+                return;
+            }
+
+            var affected = await Db.Zones
+                .Where(z => z.Id == ZoneId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(z => z.Name, name)
+                    .SetProperty(z => z.Type, type));
+
+            if (affected == 1)
+            {
+                Snackbar.Add("Zone updated.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(ZoneId));
+            }
+            else
+            {
+                Snackbar.Add("Update failed.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error updating zone.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

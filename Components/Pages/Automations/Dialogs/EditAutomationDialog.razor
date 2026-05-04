@@ -1,0 +1,209 @@
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+@using Progetto_Web_2_IoT_Auth.Services
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Edit automation</MudText>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_notFound)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                    Automation not found.
+                </MudAlert>
+            }
+            else
+            {
+                <MudTextField Value="@_deviceLabel" Label="Device" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="true" />
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText>Power:</MudText>
+                    <MudSwitch @bind-Value="_power" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2">@(_power ? "ON" : "OFF")</MudText>
+                </MudStack>
+
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2">Level: @_level</MudText>
+                    <MudSlider T="int" @bind-Value="_level" Min="0" Max="100" Step="1" Color="Color.Primary" />
+                </MudStack>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Conditions</MudText>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudCheckBox @bind-Value="_useTime" Label="Schedule" Color="Color.Primary" Dense="true" />
+                    <MudTimePicker @bind-Time="_time" Label="Time" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Disabled="@(!_useTime)" Editable="true" AmPm="false" Style="flex:1" />
+                </MudStack>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudCheckBox @bind-Value="_useWeather" Label="Weather" Color="Color.Primary" Dense="true" />
+                    <MudSelect T="string" Label="Condition" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               @bind-Value="_weatherCondition" Disabled="@(!_useWeather)" Style="flex:1">
+                        <MudSelectItem Value="@("rain")">Rain</MudSelectItem>
+                        <MudSelectItem Value="@("no_rain")">No rain</MudSelectItem>
+                    </MudSelect>
+                </MudStack>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                   Disabled="@(_saving || _loading || _notFound)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public int AutomationId { get; set; }
+
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private UserAccessService AccessService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    private UserAccessInfo _access = null!;
+
+    private bool _loading;
+    private bool _saving;
+    private bool _notFound;
+
+    private int _deviceId;
+    private int _zoneId;
+    private string _deviceLabel = string.Empty;
+
+    private bool _power;
+    private int _level;
+
+    private bool _useTime;
+    private TimeSpan? _time;
+
+    private bool _useWeather;
+    private string _weatherCondition = "rain";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _access = await AccessService.GetAccessInfoAsync();
+
+            var auto = await Db.Automations
+                .AsNoTracking()
+                .Include(a => a.Device)
+                    .ThenInclude(d => d.Zone)
+                .FirstOrDefaultAsync(a => a.Id == AutomationId);
+
+            if (auto is null || auto.Device is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            if (!_access.CanOperateZone(auto.Device.ZoneId))
+            {
+                Snackbar.Add("You don't have permission for this automation.", Severity.Warning);
+                MudDialog.Cancel();
+                return;
+            }
+
+            _deviceId = auto.DeviceId;
+            _zoneId = auto.Device.ZoneId;
+            _deviceLabel = $"{auto.Device.Name} ({auto.Device.Zone?.Name ?? string.Empty})";
+            _power = auto.Power;
+            _level = auto.Level;
+
+            if (!string.IsNullOrWhiteSpace(auto.TimeCondition)
+                && TimeSpan.TryParse(auto.TimeCondition, out var t))
+            {
+                _useTime = true;
+                _time = t;
+            }
+            else
+            {
+                _useTime = false;
+                _time = new TimeSpan(8, 0, 0);
+            }
+
+            if (auto.WeatherCondition is "rain" or "no_rain")
+            {
+                _useWeather = true;
+                _weatherCondition = auto.WeatherCondition;
+            }
+            else
+            {
+                _useWeather = false;
+                _weatherCondition = "rain";
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error loading automation.", Severity.Error);
+            _notFound = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _notFound)
+            return;
+
+        _saving = true;
+        try
+        {
+            if (!_access.CanOperateZone(_zoneId))
+            {
+                Snackbar.Add("You don't have permission for this automation.", Severity.Warning);
+                return;
+            }
+
+            var timeCondition = _useTime && _time.HasValue
+                ? _time.Value.ToString(@"hh\:mm")
+                : string.Empty;
+
+            var weatherCondition = _useWeather
+                ? _weatherCondition ?? string.Empty
+                : string.Empty;
+
+            var affected = await Db.Automations
+                .Where(a => a.Id == AutomationId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.Power, _power)
+                    .SetProperty(a => a.Level, _level)
+                    .SetProperty(a => a.TimeCondition, timeCondition)
+                    .SetProperty(a => a.WeatherCondition, weatherCondition));
+
+            if (affected == 1)
+            {
+                Snackbar.Add("Automation updated.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(AutomationId));
+            }
+            else
+            {
+                Snackbar.Add("Update failed.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error updating automation.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -51,6 +51,7 @@
                     @if (_isAdmin)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" Disabled="_loading" OnClick="OpenAddZoneDialogAsync" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" Disabled="_loading" OnClick="OpenManageZonesDialogAsync" />
                     }
                 </MudStack>
             </MudItem>
@@ -223,6 +224,21 @@
         {
             await ReloadAsync();
         }
+    }
+
+    private async Task OpenManageZonesDialogAsync()
+    {
+        if (!_isAdmin)
+            return;
+
+        var dialog = await Dialog.ShowAsync<ManageZonesDialog>("Manage zones",
+            options: new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled)
+            return;
+
+        await ReloadAsync();
     }
 
     private async Task OpenAddDeviceDialogAsync()

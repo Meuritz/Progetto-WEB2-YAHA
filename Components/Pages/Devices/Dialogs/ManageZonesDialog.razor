@@ -1,0 +1,174 @@
+@using Microsoft.EntityFrameworkCore
+@using MudBlazor
+@using Progetto_Web_2_IoT_Auth.Data
+@using Progetto_Web_2_IoT_Auth.Data.Model
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Manage zones</MudText>
+
+            @if (_loading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_zones.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No zones.</MudAlert>
+            }
+            else
+            {
+                <MudTable Items="_zones" Dense="true" Hover="true" Bordered="true">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Devices</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Name</MudTd>
+                        <MudTd>@context.Type</MudTd>
+                        <MudTd>@context.DeviceCount</MudTd>
+                        <MudTd>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                               OnClick="@(() => EditAsync(context))" Disabled="_saving" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => DeleteAsync(context))" Disabled="_saving" />
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Inject] private DbContextSQLite Db { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService Dialog { get; set; } = null!;
+
+    private bool _loading;
+    private bool _saving;
+    private bool _changed;
+    private readonly List<ZoneRow> _zones = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (!auth.User.IsInRole("admin"))
+        {
+            Snackbar.Add("This operation is restricted to administrators.", Severity.Warning);
+            MudDialog.Cancel();
+            return;
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            _zones.Clear();
+            var rows = await Db.Zones
+                .AsNoTracking()
+                .OrderBy(z => z.Name)
+                .Select(z => new ZoneRow
+                {
+                    Id = z.Id,
+                    Name = z.Name,
+                    Type = z.Type,
+                    DeviceCount = z.Devices.Count()
+                })
+                .ToListAsync();
+
+            _zones.AddRange(rows);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task EditAsync(ZoneRow row)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(EditZoneDialog.ZoneId)] = row.Id
+        };
+
+        var d = await Dialog.ShowAsync<EditZoneDialog>("Edit zone", parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
+
+        var result = await d.Result;
+        if (result is null || result.Canceled)
+            return;
+
+        _changed = true;
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ZoneRow row)
+    {
+        var confirm = await Dialog.ShowMessageBox(
+            "Delete zone",
+            $"Delete zone '{row.Name}'? All its devices and automations will be deleted.",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirm != true)
+            return;
+
+        _saving = true;
+        try
+        {
+            var affected = await Db.Zones
+                .Where(z => z.Id == row.Id)
+                .ExecuteDeleteAsync();
+
+            if (affected == 1)
+            {
+                Snackbar.Add("Zone deleted.", Severity.Success);
+                _changed = true;
+                await LoadAsync();
+            }
+            else
+            {
+                Snackbar.Add("Delete failed.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error deleting zone.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Close()
+    {
+        if (_changed)
+            MudDialog.Close(DialogResult.Ok(true));
+        else
+            MudDialog.Cancel();
+    }
+
+    private sealed class ZoneRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public int DeviceCount { get; set; }
+    }
+}

@@ -95,8 +95,12 @@
                         <MudTd>
                             @if (context.CanOperate)
                             {
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                               OnClick="@(() => DeleteAsync(context))" Disabled="_loading" />
+                                <MudStack Row="true" Spacing="0">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                                   OnClick="@(() => OpenEditDialogAsync(context))" Disabled="_loading" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                   OnClick="@(() => DeleteAsync(context))" Disabled="_loading" />
+                                </MudStack>
                             }
                         </MudTd>
                     }
@@ -186,6 +190,26 @@
             return;
 
         var dialog = await Dialog.ShowAsync<AddAutomationDialog>("Add automation",
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result is null || result.Canceled)
+            return;
+
+        await ReloadAsync();
+    }
+
+    private async Task OpenEditDialogAsync(AutomationRow row)
+    {
+        if (!row.CanOperate)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            [nameof(EditAutomationDialog.AutomationId)] = row.Id
+        };
+
+        var dialog = await Dialog.ShowAsync<EditAutomationDialog>("Edit automation", parameters,
             new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
 
         var result = await dialog.Result;
